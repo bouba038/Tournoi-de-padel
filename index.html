@@ -1,2 +1,1222 @@
-<h1>Mon Tournoi de Padel</h1>
-<p>L'application arrive bientôt !</p>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tournoi Padel</title>
+
+<!-- PWA : manifest et icônes -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<meta name="theme-color" content="#0E3D3E" />
+
+<!-- PWA : compatibilité iOS (Safari ne lit pas le manifest pour l'écran d'accueil) -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Padel" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --teal:#0E3D3E;
+    --teal-dark:#082726;
+    --teal-light:#1B5B5C;
+    --lime:#C6F135;
+    --cream:#FBF8F0;
+    --card:#FFFFFF;
+    --ink:#16231F;
+    --muted:#6E7A73;
+    --line:#E4DFD1;
+    --orange:#E8871E;
+    --orange-bg:#FFF0DC;
+    --purple:#8B5CF6;
+    --purple-bg:#F1EAFF;
+    --pink:#EC4899;
+    --pink-bg:#FEE9F3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#F5F3EC 0%,#FBF8F0 300px);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,.head-font{font-family:'Oswald',sans-serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px;}
+  .banner{
+    background:linear-gradient(120deg,var(--teal) 0%,var(--teal-light) 60%,#237873 100%);
+    border-radius:18px;
+    padding:22px 20px;
+    color:white;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:22px;
+    box-shadow:0 8px 24px rgba(14,61,62,0.25);
+  }
+  .banner .trophy{
+    width:44px;height:44px;border-radius:50%;
+    background:var(--lime);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex-shrink:0;
+  }
+  .banner input{
+    background:transparent;border:none;outline:none;color:white;
+    font-size:22px;font-weight:600;width:100%;font-family:'Oswald',sans-serif;
+  }
+  .banner input::placeholder{color:rgba(255,255,255,0.6);}
+  .banner .sub{font-size:12.5px;color:rgba(255,255,255,0.75);margin-top:2px;}
+  .banner input[readonly]{cursor:default;}
+
+  .format-toggle{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .format-btn{
+    padding:10px 16px;border-radius:10px;border:2px solid var(--line);
+    background:white;font-size:14px;font-weight:600;cursor:pointer;
+    transition:all .15s;color:var(--ink);
+  }
+  .format-btn.active-16{background:var(--teal);border-color:var(--teal);color:white;}
+  .format-btn.active-12{background:var(--orange);border-color:var(--orange);color:white;}
+  .format-btn:disabled{opacity:.5;cursor:default;}
+
+  .hint{
+    display:flex;gap:8px;align-items:flex-start;
+    background:var(--orange-bg);border:1px solid #F3D9AE;
+    border-radius:12px;padding:12px 14px;margin-bottom:18px;
+    font-size:12.5px;color:#7A5314;line-height:1.5;
+  }
+  .hint svg{flex-shrink:0;margin-top:2px;}
+
+  .team-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .team-row .num{width:22px;text-align:right;font-size:12px;color:var(--muted);font-family:'Oswald',sans-serif;flex-shrink:0;}
+  .team-row input[type=text]{
+    flex:1;border:1.5px solid var(--line);border-radius:8px;padding:9px 11px;
+    font-size:14px;background:white;min-width:0;
+  }
+  .team-row input.poids{width:88px;flex:none;text-align:center;font-size:15px;padding:9px 8px;}
+  .team-row input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,61,62,0.12);}
+  .seed-badge{
+    width:30px;flex-shrink:0;display:flex;justify-content:center;
+  }
+  .seed-badge span{
+    font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;
+    background:linear-gradient(120deg,#FFD76B,#E8871E);color:#5A3400;
+    display:flex;align-items:center;gap:2px;
+  }
+
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .btn{
+    flex:1;min-width:220px;padding:13px 16px;border-radius:12px;font-weight:600;font-size:14.5px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+    border:none;transition:transform .1s, box-shadow .15s;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-primary{background:linear-gradient(120deg,var(--teal),#155957);color:white;box-shadow:0 6px 16px rgba(14,61,62,0.3);}
+  .btn-outline{background:white;color:var(--teal);border:2px solid var(--teal);}
+  .note{font-size:12px;color:var(--muted);margin-top:10px;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+  .topbar-left{display:flex;align-items:center;gap:10px;}
+  .topbar-left .trophy-sm{width:34px;height:34px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .topbar h1{font-size:19px;margin:0;}
+  .saved{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .reset-btn{
+    display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
+    background:white;border:1.5px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;
+  }
+  .reset-btn:hover{color:var(--ink);}
+
+  .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .org-badge{
+    font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;
+    background:var(--lime);color:var(--teal-dark);display:flex;align-items:center;gap:5px;
+    border:none;cursor:pointer;
+  }
+  .org-link{
+    font-size:11.5px;color:var(--muted);text-decoration:underline;background:none;border:none;cursor:pointer;padding:4px;
+  }
+  .readonly-banner{
+    background:var(--purple-bg);border:1px solid #D9C8FA;color:#4C2E9A;
+    border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:18px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .waiting-screen{
+    text-align:center;padding:60px 20px;color:var(--muted);
+  }
+  .waiting-screen .big{font-size:40px;margin-bottom:14px;}
+
+  .section{margin-bottom:34px;}
+  .section-head{display:flex;align-items:baseline;gap:9px;margin-bottom:14px;}
+  .dot{width:7px;height:22px;border-radius:4px;}
+  .section h2{font-size:17px;margin:0;}
+  .section .sub{font-size:12px;color:var(--muted);}
+
+  .rounds{display:flex;gap:22px;overflow-x:auto;padding-bottom:8px;}
+  .rounds.flat{flex-wrap:wrap;}
+  .round-col{min-width:210px;display:flex;flex-direction:column;gap:16px;flex-shrink:0;}
+  .round-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;font-family:'Oswald',sans-serif;}
+  .matches-col{display:flex;flex-direction:column;gap:16px;flex:1;justify-content:space-around;}
+
+  .match-card{
+    border-radius:10px;background:var(--card);overflow:hidden;
+    border:2px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,0.04);
+  }
+  .match-card.won{box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+  .team-btn{
+    width:100%;text-align:left;padding:9px 10px;font-size:13.5px;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:var(--cream);border:none;cursor:pointer;color:var(--ink);
+    border-bottom:1px solid var(--line);
+  }
+  .team-btn:last-child{border-bottom:none;}
+  .team-btn.winner{color:white;font-weight:600;}
+  .team-btn:disabled{cursor:default;}
+  .team-btn:disabled:not(.winner){opacity:.45;}
+  .team-btn.readonly{cursor:default;}
+  .team-btn .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .team-btn .right{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+  .count-badge{font-size:9.5px;padding:1px 5px;border-radius:5px;background:rgba(232,135,30,0.18);color:#8C5312;}
+  .team-btn.winner .count-badge{background:rgba(255,255,255,0.25);color:white;}
+  .checkmark{font-size:12px;}
+
+  @media (max-width:520px){
+    .team-row input.poids{width:72px;}
+    .round-col{min-width:180px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="waiting-screen"><div class="big">⏳</div>Connexion en cours…</div>
+</div>
+
+<!-- Firebase (mode réel : synchronisation en direct entre tous les téléphones) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ================= FIREBASE =================
+const firebaseConfig = {
+  apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
+  authDomain: "tournoi-padel-86551.firebaseapp.com",
+  databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tournoi-padel-86551",
+  storageBucket: "tournoi-padel-86551.firebasestorage.app",
+  messagingSenderId: "499802248061",
+  appId: "1:499802248061:web:c2295602e9bcc8b03af214"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const stateRef = db.ref("tournoi-padel/state");
+
+// Code à saisir pour devenir organisateur sur cet appareil (modifiable dans ce fichier).
+const ORGANIZER_CODE = "2026";
+const ORG_FLAG_KEY = "tournoi-padel-organisateur";
+
+function isOrganizer(){
+  try{ return localStorage.getItem(ORG_FLAG_KEY) === "yes"; }catch(e){ return false; }
+}
+
+// ================= ETAT =================
+function emptyTeam(){ return { player1:"", player2:"", poids:"" }; }
+
+const defaultState = {
+  phase:"setup",
+  format:"16",
+  teamEntries: Array.from({length:16}, emptyTeam),
+  teams:{},
+  bracket:null,
+  title:"Tournoi du club"
+};
+
+let state = null;
+let connected = false;
+let saving = false;
+let namesEditorOpen = false; // affichage local uniquement, pas synchronisé
+let pendingWrites = 0; // nombre d'écritures en cours d'envoi vers Firebase
+
+// On écoute la base de données en direct : dès qu'un changement est fait
+// par l'organisateur, tous les appareils connectés reçoivent la mise à jour.
+// IMPORTANT : tant qu'une écriture locale est encore en cours d'envoi, on ignore les
+// « échos » reçus de Firebase, sinon un clic rapide juste après un autre pouvait être
+// écrasé par une version encore ancienne reçue en retour (source du bug de doublon).
+stateRef.on("value", (snapshot)=>{
+  connected = true;
+  if(pendingWrites > 0) return;
+  const val = snapshot.val();
+  state = val || deepClone(defaultState);
+  render();
+}, (err)=>{
+  console.error("Erreur Firebase", err);
+});
+
+function saveState(){
+  if(!isOrganizer()) return; // sécurité : seul l'organisateur écrit
+  if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; }
+  saving = true;
+  render();
+  pendingWrites++;
+  stateRef.set(state).finally(()=>{
+    pendingWrites--;
+    saving = pendingWrites>0;
+    render();
+  });
+}
+
+// Version différée : utilisée pendant la saisie au clavier (noms, poids, titre)
+// pour ne pas renvoyer et resynchroniser à chaque lettre tapée.
+let saveTimer = null;
+function debouncedSaveState(){
+  if(!isOrganizer()) return;
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    saveTimer = null;
+    saving = true;
+    render();
+    pendingWrites++;
+    stateRef.set(state).finally(()=>{
+      pendingWrites--;
+      saving = pendingWrites>0;
+      render();
+    });
+  }, 500);
+}
+
+// ================= UTILITAIRES BRACKET =================
+const SEED_ANCHORS_16 = [0,15,8,7,4,11,12,3];
+
+function emptyMatch(id){ return { id, teamA:null, teamB:null, winner:null }; }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function shuffleArray(ids){
+  const arr=[...ids];
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+function computeSeedIds(entries, maxSeeds){
+  const withPoids = entries
+    .filter(e=>e.poids!=="" && e.poids!==null && !isNaN(Number(e.poids)))
+    .sort((a,b)=>Number(a.poids)-Number(b.poids));
+  return withPoids.slice(0,maxSeeds).map(e=>e.id);
+}
+
+// Sécurité diagnostique : vérifie que le tirage contient chaque équipe exactement une fois.
+// Si ce n'est pas le cas (bug), on alerte immédiatement avec le détail plutôt que de laisser
+// un tableau incohérent se construire silencieusement.
+let lastDrawValidationError = null;
+function validateDraw(order, expectedIds, label){
+  lastDrawValidationError = null;
+  const counts = {};
+  order.forEach(id=>{ if(id) counts[id] = (counts[id]||0)+1; });
+  const duplicated = Object.keys(counts).filter(id=>counts[id]>1);
+  const missing = expectedIds.filter(id=>!counts[id]);
+  const nulls = order.filter(id=>!id).length;
+  if(duplicated.length || missing.length || nulls>0){
+    const msg =
+      `Anomalie détectée dans le tirage (${label}) :\n` +
+      (duplicated.length ? `- équipe(s) en double : ${duplicated.join(", ")}\n` : "") +
+      (missing.length ? `- équipe(s) manquante(s) : ${missing.join(", ")}\n` : "") +
+      (nulls>0 ? `- ${nulls} case(s) vide(s) dans le tirage\n` : "");
+    lastDrawValidationError = msg;
+    console.error(msg, { order, expectedIds });
+  }
+}
+
+function buildBracket16(entries){
+  const seedIds = computeSeedIds(entries, 8);
+  const order = Array(16).fill(null);
+  seedIds.forEach((id,i)=>{ order[SEED_ANCHORS_16[i]] = id; });
+  const remaining = shuffleArray(entries.map(e=>e.id).filter(id=>!seedIds.includes(id)));
+  let ri=0;
+  for(let i=0;i<16;i++) if(order[i]===null) order[i]=remaining[ri++];
+
+  validateDraw(order, entries.map(e=>e.id), "buildBracket16");
+
+  const R1=[];
+  for(let i=0;i<8;i++) R1.push({id:`P-R1-${i}`,teamA:order[i*2],teamB:order[i*2+1],winner:null});
+
+  return {
+    size:16,
+    principal:{
+      R1,
+      QF:[0,1,2,3].map(i=>emptyMatch(`P-QF-${i}`)),
+      SF:[0,1].map(i=>emptyMatch(`P-SF-${i}`)),
+      PF:[emptyMatch("P-PF-0")],
+      F:[emptyMatch("P-F-0")]
+    },
+    consolante:{
+      R1:[0,1,2,3].map(i=>emptyMatch(`C-R1-${i}`)),
+      SF:[0,1].map(i=>emptyMatch(`C-SF-${i}`)),
+      PF:[emptyMatch("C-PF-0")],
+      F:[emptyMatch("C-F-0")]
+    },
+    repA:{
+      SF:[0,1].map(i=>emptyMatch(`RA-SF-${i}`)),
+      F:[emptyMatch("RA-F-0")],
+      PF:[emptyMatch("RA-PF-0")]
+    },
+    repB:{
+      SF:[0,1].map(i=>emptyMatch(`RB-SF-${i}`)),
+      F:[emptyMatch("RB-F-0")],
+      PF:[emptyMatch("RB-PF-0")]
+    }
+  };
+}
+
+function buildBracket12(entries){
+  const seedIds = computeSeedIds(entries, 4);
+  const nonSeedIds = shuffleArray(entries.map(e=>e.id).filter(id=>!seedIds.includes(id)));
+
+  validateDraw([...seedIds, ...nonSeedIds], entries.map(e=>e.id), "buildBracket12");
+
+  const R1=[];
+  for(let i=0;i<4;i++) R1.push({id:`P-R1-${i}`,teamA:nonSeedIds[i*2],teamB:nonSeedIds[i*2+1],winner:null});
+  const QF=[];
+  for(let i=0;i<4;i++) QF.push({id:`P-QF-${i}`,teamA:seedIds[i]||null,teamB:null,winner:null});
+
+  return {
+    size:12,
+    principal:{
+      R1,
+      QF,
+      SF:[0,1].map(i=>emptyMatch(`P-SF-${i}`)),
+      F:[emptyMatch("P-F-0")]
+    },
+    consolante:{
+      R1:[0,1].map(i=>emptyMatch(`C-R1-${i}`)),
+      F:[emptyMatch("C-F-0")]
+    },
+    repA:[emptyMatch("RA-0")],
+    repB:{
+      SF:[0,1].map(i=>emptyMatch(`RB-SF-${i}`)),
+      F:[emptyMatch("RB-F-0")]
+    }
+  };
+}
+
+// ================= PROGRESSION =================
+function ensureMatch(container, key, id){
+  // Sécurité : crée la sous-structure si elle manque (ex: tournoi démarré avant une mise à jour),
+  // pour ne jamais planter silencieusement et perdre un résultat.
+  if(!container[key]) container[key] = [emptyMatch(id)];
+  return container[key];
+}
+function ensurePairRound(container, key, idPrefix){
+  // Comme ensureMatch mais pour un tour à 2 matchs (ex: SF d'un mini-tableau de repêchage).
+  if(!container[key]) container[key] = [emptyMatch(`${idPrefix}-0`), emptyMatch(`${idPrefix}-1`)];
+  return container[key];
+}
+
+function setWinner(bracketKey, roundKey, matchId, winnerId){
+  if(!isOrganizer()) return;
+  const size = state.bracket.size;
+  const next = deepClone(state.bracket);
+  const getRound=(bk,rk)=> rk ? next[bk][rk] : next[bk];
+  const round = getRound(bracketKey, roundKey);
+  const match = round.find(m=>m.id===matchId);
+  if(!match || !match.teamA || !match.teamB) return;
+
+  const loserId = winnerId===match.teamA ? match.teamB : match.teamA;
+  match.winner = winnerId;
+  const idxInRound = round.findIndex(m=>m.id===matchId);
+
+  function clearDownstream(bk, fromRoundKey, idx){
+    const chain =
+      bk==="principal" ? ["R1","QF","SF","F"] :
+      bk==="consolante" ? (size===12 ? ["R1","F"] : ["R1","SF","F"]) :
+      (bk==="repB" || bk==="repA") ? ["SF","F"] : null;
+    if(!chain) return;
+    const pos = chain.indexOf(fromRoundKey);
+    if(pos===-1 || pos===chain.length-1) return;
+    const nextRoundKey = chain[pos+1];
+    const nextIdx = Math.floor(idx/2);
+    const slot = idx%2===0 ? "teamA" : "teamB";
+    const nextRound = next[bk][nextRoundKey];
+    if(nextRound && nextRound[nextIdx]){
+      if(nextRound[nextIdx][slot]){
+        nextRound[nextIdx][slot]=null;
+        nextRound[nextIdx].winner=null;
+      }
+      clearDownstream(bk, nextRoundKey, nextIdx);
+    }
+  }
+
+  function pairedAdvance(bk, toRoundKey, matchIndex){
+    const targetRound = getRound(bk, toRoundKey);
+    const targetIdx = Math.floor(matchIndex/2);
+    const slot = matchIndex%2===0 ? "teamA" : "teamB";
+    if(targetRound && targetRound[targetIdx]){
+      targetRound[targetIdx][slot]=winnerId;
+      targetRound[targetIdx].winner=null;
+      clearDownstream(bk, toRoundKey, targetIdx);
+    }
+  }
+
+  if(bracketKey==="principal"){
+    if(size===16){
+      const chain=["R1","QF","SF","F"];
+      const pos=chain.indexOf(roundKey);
+      if(pos!==-1 && pos<chain.length-1) pairedAdvance("principal", chain[pos+1], idxInRound);
+      if(roundKey==="R1"){
+        const targetIdx=Math.floor(idxInRound/2);
+        const slot=idxInRound%2===0?"teamA":"teamB";
+        next.consolante.R1[targetIdx][slot]=loserId;
+        next.consolante.R1[targetIdx].winner=null;
+        clearDownstream("consolante","R1",targetIdx);
+      }
+      if(roundKey==="QF"){
+        const slot=idxInRound%2===0?"teamA":"teamB";
+        const rIdx = idxInRound<2?0:1;
+        const rbSF = ensurePairRound(next.repB,"SF","RB-SF");
+        rbSF[rIdx][slot]=loserId;
+        rbSF[rIdx].winner=null;
+      }
+      if(roundKey==="SF"){
+        const slot=idxInRound===0?"teamA":"teamB";
+        const pPF = ensureMatch(next.principal,"PF","P-PF-0");
+        pPF[0][slot]=loserId;
+        pPF[0].winner=null;
+      }
+    } else {
+      // FORMAT 12
+      if(roundKey==="R1"){
+        next.principal.QF[idxInRound].teamB = winnerId;
+        next.principal.QF[idxInRound].winner = null;
+        clearDownstream("principal","QF",idxInRound);
+        const targetIdx=Math.floor(idxInRound/2);
+        const slot=idxInRound%2===0?"teamA":"teamB";
+        next.consolante.R1[targetIdx][slot]=loserId;
+        next.consolante.R1[targetIdx].winner=null;
+        clearDownstream("consolante","R1",targetIdx);
+      } else if(roundKey==="QF"){
+        pairedAdvance("principal","SF",idxInRound);
+        const targetIdx=Math.floor(idxInRound/2);
+        const slot=idxInRound%2===0?"teamA":"teamB";
+        next.repB.SF[targetIdx][slot]=loserId;
+        next.repB.SF[targetIdx].winner=null;
+      } else if(roundKey==="SF"){
+        pairedAdvance("principal","F",idxInRound);
+      }
+    }
+  }
+
+  if(bracketKey==="repB" && roundKey==="SF"){
+    pairedAdvance("repB","F",idxInRound);
+    if(size===16){
+      const slot = idxInRound===0?"teamA":"teamB";
+      const rbPF = ensureMatch(next.repB,"PF","RB-PF-0");
+      rbPF[0][slot]=loserId;
+      rbPF[0].winner=null;
+    }
+  }
+
+  if(bracketKey==="repA" && roundKey==="SF"){
+    pairedAdvance("repA","F",idxInRound);
+    if(size===16){
+      const slot = idxInRound===0?"teamA":"teamB";
+      const raPF = ensureMatch(next.repA,"PF","RA-PF-0");
+      raPF[0][slot]=loserId;
+      raPF[0].winner=null;
+    }
+  }
+
+  if(bracketKey==="consolante"){
+    if(size===16){
+      const chain=["R1","SF","F"];
+      const pos=chain.indexOf(roundKey);
+      if(pos!==-1 && pos<chain.length-1) pairedAdvance("consolante", chain[pos+1], idxInRound);
+      if(roundKey==="R1"){
+        const slot=idxInRound%2===0?"teamA":"teamB";
+        const rIdx = idxInRound<2?0:1;
+        if(Array.isArray(next.repA)){
+          // ancien format (avant mise à jour) : on migre à la volée vers la nouvelle structure
+          next.repA = { SF:[emptyMatch("RA-SF-0"),emptyMatch("RA-SF-1")], F:[emptyMatch("RA-F-0")], PF:[emptyMatch("RA-PF-0")] };
+        }
+        const raSF = ensurePairRound(next.repA,"SF","RA-SF");
+        raSF[rIdx][slot]=loserId;
+        raSF[rIdx].winner=null;
+        clearDownstream("repA","SF",rIdx);
+      }
+      if(roundKey==="SF"){
+        const slot=idxInRound===0?"teamA":"teamB";
+        const cPF = ensureMatch(next.consolante,"PF","C-PF-0");
+        cPF[0][slot]=loserId;
+        cPF[0].winner=null;
+      }
+    } else {
+      if(roundKey==="R1"){
+        pairedAdvance("consolante","F",idxInRound);
+        const slot = idxInRound===0?"teamA":"teamB";
+        next.repA[0][slot]=loserId;
+        next.repA[0].winner=null;
+      }
+    }
+  }
+
+  state.bracket = next;
+  saveState();
+}
+
+function countMatches(){
+  if(!state.bracket) return {};
+  const b = state.bracket;
+  const counts = {};
+  const repAMatches = Array.isArray(b.repA) ? b.repA : [...(b.repA.SF||[]), ...(b.repA.F||[]), ...(b.repA.PF||[])];
+  const repBMatches = Array.isArray(b.repB) ? b.repB : [...(b.repB.SF||[]), ...(b.repB.F||[]), ...(b.repB.PF||[])];
+  const groups = [
+    b.principal.R1, b.principal.QF, b.principal.SF, b.principal.PF || [], b.principal.F,
+    b.consolante.R1, b.consolante.SF || [], b.consolante.PF || [], b.consolante.F,
+    repAMatches, repBMatches
+  ];
+  groups.flat().forEach(m=>{
+    if(m.winner){
+      [m.teamA, m.teamB].forEach(tid=>{ counts[tid]=(counts[tid]||0)+1; });
+    }
+  });
+  return counts;
+}
+
+// Classement final : déduit les places 1 à 16 (ou 1 à 12) à partir des matchs déjà joués.
+// Certaines places restent ex æquo car issues de matchs de repêchage parallèles sans finale commune.
+function winnerLoser(m){
+  if(!m || !m.winner) return null;
+  return { winner:m.winner, loser: m.winner===m.teamA ? m.teamB : m.teamA };
+}
+function computeRanking(){
+  const b = state.bracket;
+  if(!b) return [];
+  const rows = [];
+  const push = (rank, teams)=> rows.push({ rank, teams: teams.filter(Boolean) });
+  const at = (arr, i)=> (arr && arr[i]) ? arr[i] : null; // accès défensif (anciens tournois avant mise à jour)
+
+  if(b.size===16){
+    const F = winnerLoser(at(b.principal.F,0));
+    push("1", [F && F.winner]);
+    push("2", [F && F.loser]);
+    const PF = winnerLoser(at(b.principal.PF,0));
+    push("3", [PF && PF.winner]);
+    push("4", [PF && PF.loser]);
+    const CF = winnerLoser(at(b.consolante.F,0));
+    push("5", [CF && CF.winner]);
+    push("6", [CF && CF.loser]);
+    const CPF = winnerLoser(at(b.consolante.PF,0));
+    push("7", [CPF && CPF.winner]);
+    push("8", [CPF && CPF.loser]);
+    const repAF = Array.isArray(b.repA) ? null : b.repA.F;
+    const repAPF = Array.isArray(b.repA) ? null : b.repA.PF;
+    const RAF = winnerLoser(at(repAF,0));
+    push("9", [RAF && RAF.winner]);
+    push("10", [RAF && RAF.loser]);
+    const RAPF = winnerLoser(at(repAPF,0));
+    push("11", [RAPF && RAPF.winner]);
+    push("12", [RAPF && RAPF.loser]);
+    const repBF = Array.isArray(b.repB) ? null : b.repB.F;
+    const repBPF = Array.isArray(b.repB) ? null : b.repB.PF;
+    const RBF = winnerLoser(at(repBF,0));
+    push("13", [RBF && RBF.winner]);
+    push("14", [RBF && RBF.loser]);
+    const RBPF = winnerLoser(at(repBPF,0));
+    push("15", [RBPF && RBPF.winner]);
+    push("16", [RBPF && RBPF.loser]);
+  } else {
+    const F = winnerLoser(at(b.principal.F,0));
+    push("1", [F && F.winner]);
+    push("2", [F && F.loser]);
+    const SF0 = winnerLoser(at(b.principal.SF,0)), SF1 = winnerLoser(at(b.principal.SF,1));
+    push("3-4", [SF0 && SF0.loser, SF1 && SF1.loser]);
+    const CF = winnerLoser(at(b.consolante.F,0));
+    push("5", [CF && CF.winner]);
+    push("6", [CF && CF.loser]);
+    const repBF = Array.isArray(b.repB) ? null : b.repB.F;
+    const repBSF = Array.isArray(b.repB) ? null : b.repB.SF;
+    const RBF = winnerLoser(at(repBF,0));
+    push("7", [RBF && RBF.winner]);
+    push("8", [RBF && RBF.loser]);
+    const RBSF0 = winnerLoser(at(repBSF,0)), RBSF1 = winnerLoser(at(repBSF,1));
+    push("9-10", [RBSF0 && RBSF0.loser, RBSF1 && RBSF1.loser]);
+    const RA = winnerLoser(at(b.repA,0));
+    push("11", [RA && RA.winner]);
+    push("12", [RA && RA.loser]);
+  }
+  return rows;
+}
+function formatRank(rank){
+  if(rank.includes("-")){
+    const [a,b] = rank.split("-");
+    return `${a}e-${b}e`;
+  }
+  return rank==="1" ? "1er" : `${rank}e`;
+}
+
+// ================= ACTIONS SETUP (organisateur uniquement) =================
+function changeFormat(f){
+  if(!isOrganizer()) return;
+  state.format = f;
+  state.teamEntries = Array.from({length: f==="12"?12:16}, emptyTeam);
+  saveState();
+}
+function updateTeamField(i, field, val){
+  if(!isOrganizer()) return;
+  state.teamEntries[i] = {...state.teamEntries[i], [field]: val};
+  debouncedSaveState();
+}
+function updateTeamName(id, val){
+  if(!isOrganizer()) return;
+  state.teams[id] = val;
+  debouncedSaveState();
+}
+function updateTeamWeight(id, val){
+  if(!isOrganizer()) return;
+  if(!state.teamWeights) state.teamWeights = {};
+  state.teamWeights[id] = val.replace(/[^0-9.]/g,"");
+  debouncedSaveState();
+}
+function toggleNamesEditor(){
+  namesEditorOpen = !namesEditorOpen;
+  render();
+}
+function startTournament(seeded){
+  if(!isOrganizer()) return;
+
+  // Sécurité : détecte deux équipes qui auraient reçu exactement le même nom
+  // (ex: deux lignes tapées "E" / "E" par erreur), pour éviter un tableau confus
+  // où deux équipes différentes se ressemblent parfaitement.
+  const namesSeen = {};
+  const duplicates = [];
+  state.teamEntries.forEach((t, i)=>{
+    const name = `${t.player1.trim()} / ${t.player2.trim()}`.toLowerCase();
+    if(namesSeen[name] !== undefined){
+      duplicates.push(`« ${t.player1.trim()} / ${t.player2.trim()} » (lignes ${namesSeen[name]+1} et ${i+1})`);
+    } else {
+      namesSeen[name] = i;
+    }
+  });
+  if(duplicates.length > 0){
+    alert(
+      "Deux équipes ou plus portent exactement le même nom, ce qui va créer une confusion dans le tableau :\n\n" +
+      duplicates.join("\n") +
+      "\n\nModifiez un des deux noms avant de lancer le tirage."
+    );
+    return;
+  }
+
+  const teamMap = {};
+  const weightMap = {};
+  const entries = state.teamEntries.map((t,i)=>{
+    const id=`t${i}`;
+    teamMap[id] = `${t.player1.trim()} / ${t.player2.trim()}`;
+    weightMap[id] = t.poids || "";
+    return { id, poids: seeded ? t.poids : "" };
+  });
+  const bracket = state.format==="12" ? buildBracket12(entries) : buildBracket16(entries);
+
+  if(lastDrawValidationError){
+    // On traduit les identifiants en noms d'équipes pour un message compréhensible,
+    // et on bloque le lancement plutôt que de laisser un tableau incohérent.
+    const readable = lastDrawValidationError.replace(/\bt(\d+)\b/g, (m, n)=> teamMap[`t${n}`] || m);
+    alert(
+      "Le tirage a produit une anomalie et n'a pas été lancé :\n\n" + readable +
+      "\nRéessayez de cliquer sur le tirage au sort — si le problème persiste, prévenez le développeur avec ce message."
+    );
+    return;
+  }
+
+  state.teams = teamMap;
+  state.teamWeights = weightMap;
+  state.bracket = bracket;
+  state.phase = "draw";
+  saveState();
+}
+function resetAll(){
+  if(!isOrganizer()) return;
+  if(!confirm("Réinitialiser tout le tournoi ? Cette action efface les résultats pour tout le monde.")) return;
+  state.phase="setup";
+  state.teamEntries = Array.from({length: state.format==="12"?12:16}, emptyTeam);
+  state.teams={};
+  state.bracket=null;
+  saveState();
+}
+
+// ================= MODE ORGANISATEUR =================
+function promptOrganizer(){
+  const code = prompt("Code organisateur (pour saisir les résultats) :");
+  if(code===null) return;
+  if(code.trim() === ORGANIZER_CODE){
+    try{ localStorage.setItem(ORG_FLAG_KEY, "yes"); }catch(e){}
+    render();
+  } else {
+    alert("Code incorrect.");
+  }
+}
+function leaveOrganizer(){
+  if(!confirm("Repasser en mode consultation (lecture seule) sur cet appareil ?")) return;
+  try{ localStorage.removeItem(ORG_FLAG_KEY); }catch(e){}
+  render();
+}
+
+// ================= RENDU =================
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function render(){
+  const app = document.getElementById("app");
+  if(!connected || !state){
+    app.innerHTML = `<div class="waiting-screen"><div class="big">⏳</div>Connexion en cours…</div>`;
+    return;
+  }
+
+  // Mémorise le champ actif (et la position du curseur) avant de redessiner,
+  // pour ne pas interrompre une saisie en cours quand une mise à jour arrive.
+  const active = document.activeElement;
+  let focusInfo = null;
+  if(active && app.contains(active) && active.tagName==="INPUT"){
+    if(active.id==="titleInput"){
+      focusInfo = { titleInput:true, start:active.selectionStart, end:active.selectionEnd };
+    } else if(active.dataset.teamEdit !== undefined){
+      focusInfo = { teamEdit:active.dataset.teamEdit, start:active.selectionStart, end:active.selectionEnd };
+    } else if(active.dataset.teamWeightEdit !== undefined){
+      focusInfo = { teamWeightEdit:active.dataset.teamWeightEdit, start:active.selectionStart, end:active.selectionEnd };
+    } else if(active.dataset.idx !== undefined){
+      focusInfo = { idx:active.dataset.idx, field:active.dataset.field, start:active.selectionStart, end:active.selectionEnd };
+    }
+  }
+
+  const org = isOrganizer();
+  let body;
+  if(state.phase==="setup"){
+    body = org ? renderSetup() : renderWaiting();
+  } else {
+    body = renderDraw(org);
+  }
+  app.innerHTML = body;
+  bindEvents();
+
+  if(focusInfo){
+    let el = focusInfo.titleInput
+      ? document.getElementById("titleInput")
+      : focusInfo.teamEdit !== undefined
+      ? app.querySelector(`input[data-team-edit="${focusInfo.teamEdit}"]`)
+      : focusInfo.teamWeightEdit !== undefined
+      ? app.querySelector(`input[data-team-weight-edit="${focusInfo.teamWeightEdit}"]`)
+      : app.querySelector(`input[data-idx="${focusInfo.idx}"][data-field="${focusInfo.field}"]`);
+    if(el){
+      el.focus();
+      try{ el.setSelectionRange(focusInfo.start, focusInfo.end); }catch(e){}
+    }
+  }
+}
+
+function renderWaiting(){
+  return `
+    <div class="banner">
+      <div class="trophy">🏆</div>
+      <div style="flex:1;">
+        <div style="font-size:22px;font-weight:600;font-family:'Oswald',sans-serif;">${esc(state.title)}</div>
+        <div class="sub">En attente du lancement du tournoi</div>
+      </div>
+    </div>
+    <div class="waiting-screen">
+      <div class="big">⏳</div>
+      L'organisateur n'a pas encore lancé le tournoi.<br/>Cette page se mettra à jour automatiquement.
+    </div>
+    <div style="text-align:center;">
+      <button class="org-link" data-action="org-login">Je suis l'organisateur</button>
+    </div>
+  `;
+}
+
+function renderSetup(){
+  const maxSeeds = state.format==="12" ? 4 : 8;
+  const entriesWithIds = state.teamEntries.map((t,i)=>({...t, id:`t${i}`}));
+  const seedIds = computeSeedIds(entriesWithIds, maxSeeds);
+  const canStart = state.teamEntries.every(t=>t.player1.trim() && t.player2.trim());
+  const hasAnyPoids = state.teamEntries.some(t=>t.poids!=="");
+
+  const hintText = state.format==="16"
+    ? "Poids optionnel : plus le chiffre est bas, mieux la paire est classée. Les 8 meilleures deviennent têtes de série (n°1 à 8) et ne se rencontrent jamais au 1er tour ; les têtes de série 1 à 4 restent isolées dans 4 quartiers séparés jusqu'aux demies."
+    : "Poids optionnel : plus le chiffre est bas, mieux la paire est classée. Les 4 meilleures deviennent têtes de série et sont exemptées du 1er tour : elles entrent directement en quarts. Les 8 autres paires jouent un 1er tour pour désigner les 4 adversaires. Toutes les paires, têtes de série comprises, sont garanties d'au moins 3 matchs grâce à la Consolante et aux Repêchages.";
+
+  const rows = state.teamEntries.map((t,i)=>{
+    const id=`t${i}`;
+    const seedRank = seedIds.indexOf(id);
+    const badge = seedRank!==-1
+      ? `<span title="Tête de série n°${seedRank+1}">★ ${seedRank+1}</span>`
+      : "";
+    return `
+      <div class="team-row">
+        <span class="num">${i+1}</span>
+        <input type="text" data-idx="${i}" data-field="player1" value="${esc(t.player1)}" placeholder="Joueur 1" />
+        <input type="text" data-idx="${i}" data-field="player2" value="${esc(t.player2)}" placeholder="Joueur 2" />
+        <input type="text" class="poids" inputmode="numeric" data-idx="${i}" data-field="poids" value="${esc(t.poids)}" placeholder="Poids" />
+        <div class="seed-badge">${badge}</div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="banner">
+      <div class="trophy">🏆</div>
+      <div style="flex:1;">
+        <input id="titleInput" type="text" value="${esc(state.title)}" placeholder="Nom du tournoi" />
+        <div class="sub">Tableau principal + consolante · 3 matchs minimum garantis</div>
+      </div>
+    </div>
+
+    <div class="org-badge" style="margin-bottom:16px;display:inline-flex;">🔑 Mode organisateur actif <button class="org-link" style="color:#3A4A44;" data-action="org-logout">(quitter)</button></div>
+
+    <div class="format-toggle">
+      <button class="format-btn ${state.format==='16'?'active-16':''}" data-action="format" data-value="16">16 équipes</button>
+      <button class="format-btn ${state.format==='12'?'active-12':''}" data-action="format" data-value="12">12 équipes (4 têtes de série en quarts)</button>
+    </div>
+
+    <div class="hint">
+      <span>⭐</span>
+      <span>${hintText}</span>
+    </div>
+
+    <div>${rows}</div>
+
+    <div class="actions">
+      <button class="btn btn-primary" data-action="start" data-seeded="true" ${canStart?"":"disabled"}>🔀 Tirage au sort (têtes de série protégées)</button>
+      <button class="btn btn-outline" data-action="start" data-seeded="false" ${canStart?"":"disabled"}>👥 Tirage 100% aléatoire</button>
+    </div>
+    ${!canStart ? `<div class="note">Renseignez les deux joueurs de chaque paire (${state.teamEntries.length} au total) pour lancer le tournoi.</div>` : ""}
+    ${canStart && !hasAnyPoids ? `<div class="note">Aucun poids renseigné : le tirage sera entièrement aléatoire, sans têtes de série.</div>` : ""}
+  `;
+}
+
+function matchCardHtml(m, accent, counts, bracketKey, roundKey, org, matchNumber){
+  const ready = m.teamA && m.teamB;
+  const borderColor = m.winner ? accent : "var(--line)";
+  return `
+    <div style="display:flex;align-items:stretch;gap:7px;">
+      <div style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);">${matchNumber||""}</div>
+      <div class="match-card ${m.winner?'won':''}" style="flex:1;border-color:${borderColor};" data-bracket="${bracketKey}" data-round="${roundKey||''}" data-match="${m.id}">
+        ${teamRowHtmlAccent(m.teamA, m.winner===m.teamA, !ready, counts, accent, org)}
+        ${teamRowHtmlAccent(m.teamB, m.winner===m.teamB, !ready, counts, accent, org)}
+      </div>
+    </div>`;
+}
+function teamRowHtmlAccent(id, isWinner, disabled, counts, accent, org){
+  const name = id ? state.teams[id] : null;
+  const nb = id ? (counts[id]||0) : null;
+  const cls = "team-btn" + (isWinner ? " winner" : "") + (!org ? " readonly" : "");
+  const style = isWinner ? `style="background:${accent};"` : "";
+  const clickable = org && !disabled && id;
+  return `
+    <button class="${cls}" ${style} ${clickable?"":"disabled"} data-action="${org?'pick':''}" data-team="${id||''}">
+      <span class="name">${id ? esc(name) : "—"}</span>
+      <span class="right">
+        ${id && nb!==null && nb<3 ? `<span class="count-badge">${nb}/3</span>` : ""}
+        ${isWinner ? `<span class="checkmark">✓</span>` : ""}
+      </span>
+    </button>`;
+}
+
+function bracketSectionHtml(heading, subheading, accent, rounds, bracketKey, counts, flat, org, matchNumbers){
+  const roundsHtml = rounds.map(r=>{
+    const matches = r.matches.map(m=>matchCardHtml(m, accent, counts, bracketKey, r.key==="only"?"":r.key, org, matchNumbers?matchNumbers[m.id]:null)).join("");
+    return `
+      <div class="round-col">
+        <div class="round-label">${r.label}</div>
+        <div class="matches-col">${matches}</div>
+      </div>`;
+  }).join("");
+  return `
+    <div class="section">
+      <div class="section-head">
+        <div class="dot" style="background:${accent};"></div>
+        <h2>${heading}</h2>
+        ${subheading ? `<span class="sub">— ${subheading}</span>` : ""}
+      </div>
+      <div class="rounds ${flat?'flat':''}">${roundsHtml}</div>
+    </div>`;
+}
+
+function renderDraw(org){
+  const b = state.bracket;
+  const size = b.size;
+  const counts = countMatches();
+
+  const principalRounds = size===16
+    ? [
+        {key:"R1", label:"8es", matches:b.principal.R1},
+        {key:"QF", label:"Quarts", matches:b.principal.QF},
+        {key:"SF", label:"Demies", matches:b.principal.SF},
+        {key:"PF", label:"Petite finale (3e place)", matches:b.principal.PF || []},
+        {key:"F", label:"Finale", matches:b.principal.F}
+      ]
+    : [
+        {key:"R1", label:"1er tour", matches:b.principal.R1},
+        {key:"QF", label:"Quarts (+ têtes de série)", matches:b.principal.QF},
+        {key:"SF", label:"Demies", matches:b.principal.SF},
+        {key:"F", label:"Finale", matches:b.principal.F}
+      ];
+
+  const consolanteRounds = size===16
+    ? [
+        {key:"R1", label:"Tour 1", matches:b.consolante.R1},
+        {key:"SF", label:"Demies", matches:b.consolante.SF},
+        {key:"PF", label:"Petite finale (3e place)", matches:b.consolante.PF || []},
+        {key:"F", label:"Finale", matches:b.consolante.F}
+      ]
+    : [
+        {key:"R1", label:"Tour 1", matches:b.consolante.R1},
+        {key:"F", label:"Finale", matches:b.consolante.F}
+      ];
+
+  const repAIsLegacyFlat = Array.isArray(b.repA);
+  const repARounds = repAIsLegacyFlat
+    ? [{key:"only", label:"Match de repêchage", matches:b.repA}]
+    : [
+        {key:"SF", label:"Tour 1", matches:b.repA.SF || []},
+        {key:"PF", label:"Petite finale", matches:b.repA.PF || []},
+        {key:"F", label:"Finale", matches:b.repA.F || []}
+      ];
+
+  const repBIsLegacyFlat = Array.isArray(b.repB);
+  const repBRounds = repBIsLegacyFlat
+    ? [{key:"only", label:"Match de repêchage", matches:b.repB}]
+    : size===12
+    ? [
+        {key:"SF", label:"Tour 1", matches:b.repB.SF || []},
+        {key:"F", label:"Finale", matches:b.repB.F || []}
+      ]
+    : [
+        {key:"SF", label:"Tour 1", matches:b.repB.SF || []},
+        {key:"PF", label:"Petite finale", matches:b.repB.PF || []},
+        {key:"F", label:"Finale", matches:b.repB.F || []}
+      ];
+
+  const repASubheading = size===16 ? "perdants du tour 1 de la Consolante" : "perdant du tour 1 de la Consolante";
+
+  // Numérotation dans l'ordre chronologique réel de la journée : les matchs sont regroupés
+  // par « vague » (ce qui devient jouable en même temps), pas par tableau affiché de haut en bas.
+  const matchNumbers = buildChronologicalNumbering(b);
+  const countOf = (rounds)=> rounds.reduce((sum,r)=> sum + r.matches.length, 0);
+
+  return `
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="trophy-sm">🏆</div>
+        <h1>${esc(state.title)}</h1>
+        <span class="saved">${saving ? "💾 enregistrement…" : "🔴 en direct"}</span>
+      </div>
+      <div class="topbar-right">
+        <button class="reset-btn" data-action="toggle-names">👥 ${namesEditorOpen ? "Fermer" : "Voir les équipes"}</button>
+        ${org
+          ? `<span class="org-badge">🔑 Organisateur <button class="org-link" style="color:#3A4A44;" data-action="org-logout">(quitter)</button></span>
+             <button class="reset-btn" data-action="reset">↺ Nouveau tournoi</button>`
+          : `<button class="org-link" data-action="org-login">Je suis l'organisateur</button>`}
+      </div>
+    </div>
+
+    ${!org ? `<div class="readonly-banner">👀 Vous consultez le tournoi en direct. Seul l'organisateur peut saisir les résultats.</div>` : ""}
+
+    ${namesEditorOpen ? renderNamesEditor(org) : ""}
+
+    ${bracketSectionHtml("Tableau principal", `${countOf(principalRounds)} matchs au total`, "var(--teal)", principalRounds, "principal", counts, false, org, matchNumbers)}
+    ${bracketSectionHtml("Consolante", `${size===16?"perdants des 8es du tableau principal":"perdants du 1er tour du tableau principal"} · ${countOf(consolanteRounds)} matchs au total`, "var(--orange)", consolanteRounds, "consolante", counts, false, org, matchNumbers)}
+
+    <div class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>${bracketSectionHtml("Repêchage A", `${repASubheading} · ${countOf(repARounds)} matchs`, "var(--purple)", repARounds, "repA", counts, false, org, matchNumbers)}</div>
+      <div>${bracketSectionHtml("Repêchage B", `perdants des quarts du tableau principal · ${countOf(repBRounds)} matchs`, "var(--pink)", repBRounds, "repB", counts, false, org, matchNumbers)}</div>
+    </div>
+
+    <p class="note" style="text-align:center;margin-top:20px;">
+      ${countOf(principalRounds)+countOf(consolanteRounds)+countOf(repARounds)+countOf(repBRounds)} matchs au total pour ce tournoi ·
+      chaque équipe est garantie de disputer au moins 3 matchs entre les 4 tableaux.
+    </p>
+
+    ${renderRanking()}
+  `;
+}
+
+function renderRanking(){
+  const rows = computeRanking();
+  const medals = {"1":"🥇","2":"🥈","3":"🥉"};
+  const rowsHtml = rows.map(r=>{
+    const names = r.teams.length
+      ? r.teams.map(id=>esc(state.teams[id]||id)).join(r.teams.length>1 ? "&nbsp;&nbsp;·&nbsp;&nbsp;" : "")
+      : "—";
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line);">
+        <span style="width:52px;flex-shrink:0;font-weight:700;font-family:'Oswald',sans-serif;color:var(--teal);">${medals[r.rank]||""} ${formatRank(r.rank)}</span>
+        <span style="flex:1;font-size:14px;${r.teams.length===0?'color:var(--muted);':''}">${names}</span>
+      </div>`;
+  }).join("");
+  return `
+    <div class="section" style="background:white;border:1.5px solid var(--line);border-radius:14px;padding:18px 16px;margin-top:10px;">
+      <div class="section-head">
+        <div class="dot" style="background:var(--lime);"></div>
+        <h2>🏆 Classement final</h2>
+        <span class="sub">se remplit au fur et à mesure des résultats</span>
+      </div>
+      ${rowsHtml}
+    </div>`;
+}
+
+// Numérotation chronologique : regroupe les matchs par « vague » (ce qui devient jouable
+// une fois la vague précédente terminée), plutôt que de suivre l'ordre d'affichage des tableaux.
+function buildChronologicalNumbering(b){
+  const map = {};
+  let n = 1;
+  const add = (arr)=>{ (arr||[]).forEach(m=>{ if(m) map[m.id]=n++; }); };
+
+  const repAIsObj = !Array.isArray(b.repA);
+  const repBIsObj = !Array.isArray(b.repB);
+
+  if(b.size===16){
+    add(b.principal.R1);                                              // vague 1 : 8 matchs
+    add(b.consolante.R1);                                             // vague 2 : 4 matchs
+    add(b.principal.QF);                                              // vague 3 : 4 matchs
+    add(b.consolante.SF);                                             // vague 4a
+    if(repAIsObj) add(b.repA.SF); else add(b.repA);                   // vague 4b
+    add(b.principal.SF);                                              // vague 5a
+    if(repBIsObj) add(b.repB.SF); else add(b.repB);                   // vague 5b
+    add(b.consolante.PF); add(b.consolante.F);                        // vague 6a
+    if(repAIsObj){ add(b.repA.PF); add(b.repA.F); }                   // vague 6b
+    if(repBIsObj){ add(b.repB.PF); add(b.repB.F); }                   // vague 7a
+    add(b.principal.PF); add(b.principal.F);                          // vague 7b (la finale clôt la journée)
+  } else {
+    add(b.principal.R1);                                              // vague 1 : 4 matchs
+    add(b.consolante.R1);                                             // vague 2 : 2 matchs
+    add(b.principal.QF);                                              // vague 3 : 4 matchs
+    add(b.consolante.F);                                              // vague 4a
+    add(b.repA);                                                       // vague 4b
+    add(b.principal.SF);                                              // vague 5a
+    if(repBIsObj) add(b.repB.SF); else add(b.repB);                   // vague 5b
+    if(repBIsObj) add(b.repB.F);                                      // vague 6a
+    add(b.principal.F);                                               // vague 6b (la finale clôt la journée)
+  }
+  return map;
+}
+
+function renderNamesEditor(org){
+  const weights = state.teamWeights || {};
+  const ids = Object.keys(state.teams).sort((a,b)=> Number(a.slice(1)) - Number(b.slice(1)));
+
+  if(!org){
+    const rows = ids.map((id, i)=>`
+      <div class="team-row">
+        <span class="num">${i+1}</span>
+        <span style="flex:1;padding:9px 11px;font-size:14px;">${esc(state.teams[id])}</span>
+        <span class="poids" style="display:flex;align-items:center;justify-content:center;font-size:13.5px;color:var(--muted);">${weights[id] ? esc(weights[id]) : "—"}</span>
+      </div>`).join("");
+    return `
+      <div class="section" style="background:white;border:1.5px solid var(--line);border-radius:14px;padding:16px;">
+        <div class="section-head">
+          <div class="dot" style="background:var(--teal);"></div>
+          <h2>Équipes du tournoi</h2>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
+  const rows = ids.map((id, i)=>`
+    <div class="team-row">
+      <span class="num">${i+1}</span>
+      <input type="text" data-team-edit="${id}" value="${esc(state.teams[id])}" placeholder="Nom de l'équipe" />
+      <input type="text" class="poids" inputmode="numeric" data-team-weight-edit="${id}" value="${esc(weights[id]||"")}" placeholder="Poids" />
+    </div>`).join("");
+  return `
+    <div class="section" style="background:white;border:1.5px solid var(--line);border-radius:14px;padding:16px;">
+      <div class="section-head">
+        <div class="dot" style="background:var(--teal);"></div>
+        <h2>Modifier les noms et poids des équipes</h2>
+      </div>
+      <div class="hint" style="margin-bottom:14px;">
+        <span>ℹ️</span>
+        <span>Les tableaux se mettent à jour automatiquement pour les noms. Le poids ne sert qu'au tirage au sort initial : le modifier ici ne redistribue pas les équipes déjà placées dans le tableau, c'est uniquement pour garder une trace correcte.</span>
+      </div>
+      ${rows}
+    </div>
+  `;
+}
+
+// ================= EVENEMENTS =================
+function bindEvents(){
+  const app = document.getElementById("app");
+
+  const titleInput = document.getElementById("titleInput");
+  if(titleInput){
+    titleInput.addEventListener("input", (e)=>{
+      if(!isOrganizer()) return;
+      state.title = e.target.value;
+      debouncedSaveState();
+    });
+  }
+
+  app.querySelectorAll('input[data-idx]').forEach(inp=>{
+    inp.addEventListener("input", (e)=>{
+      const i = Number(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      let val = e.target.value;
+      if(field==="poids") val = val.replace(/[^0-9.]/g,"");
+      updateTeamField(i, field, val);
+    });
+  });
+
+  app.querySelectorAll('input[data-team-edit]').forEach(inp=>{
+    inp.addEventListener("input", (e)=>{
+      updateTeamName(e.target.dataset.teamEdit, e.target.value);
+    });
+  });
+
+  app.querySelectorAll('input[data-team-weight-edit]').forEach(inp=>{
+    inp.addEventListener("input", (e)=>{
+      updateTeamWeight(e.target.dataset.teamWeightEdit, e.target.value);
+    });
+  });
+
+  app.querySelectorAll('[data-action="toggle-names"]').forEach(btn=>{
+    btn.addEventListener("click", toggleNamesEditor);
+  });
+
+  app.querySelectorAll('[data-action="format"]').forEach(btn=>{
+    btn.addEventListener("click", ()=> changeFormat(btn.dataset.value));
+  });
+
+  app.querySelectorAll('[data-action="start"]').forEach(btn=>{
+    btn.addEventListener("click", ()=> startTournament(btn.dataset.seeded==="true"));
+  });
+
+  app.querySelectorAll('[data-action="reset"]').forEach(btn=>{
+    btn.addEventListener("click", resetAll);
+  });
+
+  app.querySelectorAll('[data-action="org-login"]').forEach(btn=>{
+    btn.addEventListener("click", promptOrganizer);
+  });
+  app.querySelectorAll('[data-action="org-logout"]').forEach(btn=>{
+    btn.addEventListener("click", leaveOrganizer);
+  });
+
+  app.querySelectorAll('.match-card').forEach(card=>{
+    const bracketKey = card.dataset.bracket;
+    const roundKey = card.dataset.round || null;
+    const matchId = card.dataset.match;
+    card.querySelectorAll('[data-action="pick"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const teamId = btn.dataset.team;
+        if(!teamId) return;
+        setWinner(bracketKey, roundKey, matchId, teamId);
+      });
+    });
+  });
+}
+
+// ================= PWA : enregistrement du service worker =================
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {
+      // Normal si le fichier est ouvert en local (file://) ou si le SW n'est pas trouvé.
+    });
+  });
+}
+</script>
+</body>
+</html>
