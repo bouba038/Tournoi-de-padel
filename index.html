@@ -482,7 +482,6 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
       const pos=chain.indexOf(roundKey);
       if(pos!==-1 && pos<chain.length-1) pairedAdvance("principal", chain[pos+1], idxInRound);
       
-      // Perdants 8es (R1) -> Consolante (Places 9-16)
       if(roundKey==="R1"){
         const targetIdx=Math.floor(idxInRound/2);
         const slot=idxInRound%2===0?"teamA":"teamB";
@@ -490,7 +489,6 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
         next.consolante.R1[targetIdx].winner=null;
         clearDownstream("consolante","R1",targetIdx);
       }
-      // Perdants Quarts (QF) -> Repêchage B (Places 5-8)
       if(roundKey==="QF"){
         const slot=idxInRound%2===0?"teamA":"teamB";
         const rIdx = idxInRound<2?0:1;
@@ -526,7 +524,6 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
     }
   }
 
-  // Dans le Repêchage B (places 5-8)
   if(bracketKey==="repB" && roundKey==="SF"){
     pairedAdvance("repB","F",idxInRound);
     if(size===16){
@@ -537,7 +534,6 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
     }
   }
 
-  // Dans le Repêchage A (places 13-16)
   if(bracketKey==="repA" && roundKey==="SF"){
     pairedAdvance("repA","F",idxInRound);
     if(size===16){
@@ -548,14 +544,12 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
     }
   }
 
-  // Dans la Consolante (places 9-16)
   if(bracketKey==="consolante"){
     if(size===16){
       const chain=["R1","SF","F"];
       const pos=chain.indexOf(roundKey);
       if(pos!==-1 && pos<chain.length-1) pairedAdvance("consolante", chain[pos+1], idxInRound);
       
-      // Perdants Tour 1 Consolante -> Repêchage A (Places 13-16)
       if(roundKey==="R1"){
         const slot=idxInRound%2===0?"teamA":"teamB";
         const rIdx = idxInRound<2?0:1;
@@ -579,11 +573,254 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
   saveState();
 }
 
-// Fonction de rendu (simplifiée pour la structure complète)
+// ================= RENDU DE L'APPLICATION =================
+function renderTeamName(teamId){
+  if(!teamId || !state.teams[teamId]) return "TBD";
+  const t = state.teams[teamId];
+  return `${t.player1} & ${t.player2}`;
+}
+
+function renderMatchCard(match, bracketKey, roundKey){
+  const tA = state.teams[match.teamA];
+  const tB = state.teams[match.teamB];
+  const nameA = tA ? `${tA.player1} & ${tA.player2}` : (match.teamA ? match.teamA : "—");
+  const nameB = tB ? `${tB.player1} & ${tB.player2}` : (match.teamB ? match.teamB : "—");
+  
+  const hasTeams = match.teamA && match.teamB;
+  const organizer = isOrganizer();
+  
+  const winA = match.winner === match.teamA;
+  const winB = match.winner === match.teamB;
+
+  return `
+    <div class="match-card ${match.winner ? 'won' : ''}">
+      <button class="team-btn ${winA ? 'winner' : ''} ${(!organizer || !hasTeams) ? 'readonly' : ''}"
+        ${(!organizer || !hasTeams) ? 'disabled' : ''}
+        onclick="setWinner('${bracketKey}','${roundKey}','${match.id}','${match.teamA}')">
+        <span class="name">${nameA}</span>
+        <span class="right">
+          ${winA ? '<span class="checkmark">✔</span>' : ''}
+        </span>
+      </button>
+      <button class="team-btn ${winB ? 'winner' : ''} ${(!organizer || !hasTeams) ? 'readonly' : ''}"
+        ${(!organizer || !hasTeams) ? 'disabled' : ''}
+        onclick="setWinner('${bracketKey}','${roundKey}','${match.id}','${match.teamB}')">
+        <span class="name">${nameB}</span>
+        <span class="right">
+          ${winB ? '<span class="checkmark">✔</span>' : ''}
+        </span>
+      </button>
+    </div>
+  `;
+}
+
+function renderSection(title, dotColor, matches, bracketKey, roundKey){
+  if(!matches || matches.length === 0) return '';
+  return `
+    <div class="section">
+      <div class="section-head">
+        <div class="dot" style="background:${dotColor}"></div>
+        <h2>${title}</h2>
+      </div>
+      <div class="rounds">
+        <div class="round-col" style="flex:1;">
+          <div class="matches-col">
+            ${matches.map(m => renderMatchCard(m, bracketKey, roundKey)).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function render() {
   const app = document.getElementById("app");
   if (!state) return;
-  // Le rendu complet s'appuie sur la logique de ton application Padel
+
+  const organizer = isOrganizer();
+
+  if (state.phase === "setup") {
+    app.innerHTML = `
+      <div class="banner">
+        <div class="trophy">🏆</div>
+        <div style="flex:1;">
+          <input type="text" value="${state.title || 'Tournoi du club'}" 
+            ${!organizer ? 'readonly' : ''}
+            oninput="state.title=this.value; debouncedSaveState();" 
+            placeholder="Nom du tournoi" />
+          <div class="sub">Configuration des équipes & Têtes de série</div>
+        </div>
+      </div>
+
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="org-badge" onclick="toggleOrganizerMode()">
+            ${organizer ? '🔒 Mode Organisateur Actif' : '🔑 Activer Mode Organisateur'}
+          </button>
+        </div>
+        <div class="topbar-right">
+          ${organizer ? `<button class="reset-btn" onclick="resetSetup()">🔄 Réinitialiser</button>` : ''}
+        </div>
+      </div>
+
+      ${!organizer ? `
+        <div class="readonly-banner">
+          👁️ <strong>Mode Lecture seule</strong> — Seul l'organisateur peut modifier les équipes et lancer le tournoi.
+        </div>
+      ` : ''}
+
+      <div class="format-toggle">
+        <button class="format-btn ${state.format==='16'?'active-16':''}" ${!organizer?'disabled':''} onclick="setFormat('16')">Format 16 Équipes</button>
+        <button class="format-btn ${state.format==='12'?'active-12':''}" ${!organizer?'disabled':''} onclick="setFormat('12')">Format 12 Équipes</button>
+      </div>
+
+      <div class="hint">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>Indiquez le poids (ou niveau) des paires pour ordonner automatiquement les têtes de série (les plus faibles/forts selon votre logique, ex: somme des classements). Les cases vides ne seront pas têtes de série.</div>
+      </div>
+
+      <div class="teams-container">
+        ${state.teamEntries.map((team, idx) => `
+          <div class="team-row">
+            <span class="num">${idx+1}.</span>
+            <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" ${!organizer?'readonly':''} oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
+            <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" ${!organizer?'readonly':''} oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
+            <input type="text" class="poids" placeholder="Poids" value="${team.poids || ''}" ${!organizer?'readonly':''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
+          </div>
+        `).join('')}
+      </div>
+
+      ${organizer ? `
+        <div class="actions">
+          <button class="btn btn-primary" onclick="launchTournament()">🚀 Lancer le Tournoi</button>
+        </div>
+      ` : ''}
+    `;
+  } else {
+    // Phase Tournoi
+    const b = state.bracket;
+    app.innerHTML = `
+      <div class="banner">
+        <div class="trophy">🏆</div>
+        <div style="flex:1;">
+          <input type="text" value="${state.title || 'Tournoi du club'}" readonly />
+          <div class="sub">Tournoi en cours (${b.size} équipes)</div>
+        </div>
+      </div>
+
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="org-badge" onclick="toggleOrganizerMode()">
+            ${organizer ? '🔒 Mode Organisateur Actif' : '🔑 Activer Mode Organisateur'}
+          </button>
+        </div>
+        <div class="topbar-right">
+          ${organizer ? `<button class="reset-btn" onclick="backToSetup()">⚙️ Modifier les équipes</button>` : ''}
+        </div>
+      </div>
+
+      ${renderSection("Tableau Principal", "var(--teal)", b.principal.R1 || b.principal.QF, "principal", b.principal.R1 ? "R1" : "QF")}
+      ${b.principal.SF ? renderSection("Demi-finales Principal", "var(--teal)", b.principal.SF, "principal", "SF") : ''}
+      ${b.principal.F ? renderSection("Finale Principal", "var(--lime)", b.principal.F, "principal", "F") : ''}
+      
+      ${renderSection("Consolante", "var(--orange)", b.consolante.R1 || b.consolante.F, "consolante", b.consolante.R1 ? "R1" : "F")}
+
+      <div class="actions" style="margin-top:30px;">
+        <button class="btn btn-outline" onclick="shareTournoi()">📋 Partager le lien</button>
+      </div>
+    `;
+  }
+}
+
+// ================= ACTIONS INTERFACE =================
+function toggleOrganizerMode(){
+  if(isOrganizer()){
+    localStorage.removeItem(ORG_FLAG_KEY);
+    alert("Mode organisateur désactivé.");
+    render();
+  } else {
+    const code = prompt("Entrez le code organisateur :");
+    if(code === ORGANIZER_CODE){
+      localStorage.setItem(ORG_FLAG_KEY, "yes");
+      alert("Mode organisateur activé !");
+      render();
+    } else if(code !== null){
+      alert("Code incorrect.");
+    }
+  }
+}
+
+function setFormat(fmt){
+  if(!isOrganizer()) return;
+  state.format = fmt;
+  const count = fmt === '16' ? 16 : 12;
+  state.teamEntries = Array.from({length: count}, (_, i) => state.teamEntries[i] || emptyTeam());
+  saveState();
+}
+
+function updateTeamEntry(idx, field, val){
+  if(!isOrganizer()) return;
+  state.teamEntries[idx][field] = val;
+  debouncedSaveState();
+}
+
+function resetSetup(){
+  if(!isOrganizer()) return;
+  if(confirm("Voulez-vous vraiment réinitialiser toutes les équipes ?")) {
+    state.teamEntries = Array.from({length: Number(state.format)}, emptyTeam);
+    state.phase = "setup";
+    state.bracket = null;
+    saveState();
+  }
+}
+
+function backToSetup(){
+  if(!isOrganizer()) return;
+  if(confirm("Revenir à la configuration effacera l'avancement actuel du tournoi. Continuer ?")) {
+    state.phase = "setup";
+    saveState();
+  }
+}
+
+function launchTournament(){
+  if(!isOrganizer()) return;
+  
+  // Validation rapide
+  const validEntries = state.teamEntries.filter(e => e.player1.trim() !== "" || e.player2.trim() !== "");
+  const targetSize = Number(state.format);
+  
+  if(validEntries.length < targetSize){
+    if(!confirm(`Vous avez rempli ${validEntries.length} équipes sur les ${targetSize} attendues. Voulez-vous compléter avec des équipes "BYE" ou vides ?`)) return;
+  }
+
+  state.teams = {};
+  const entriesWithId = state.teamEntries.map((e, i) => {
+    const id = `t_${i+1}`;
+    state.teams[id] = {
+      player1: e.player1.trim() || `Joueur ${i*2+1}`,
+      player2: e.player2.trim() || `Joueur ${i*2+2}`,
+      poids: e.poids
+    };
+    return { id, poids: e.poids };
+  });
+
+  if(targetSize === 16){
+    state.bracket = buildBracket16(entriesWithId);
+  } else {
+    state.bracket = buildBracket12(entriesWithId);
+  }
+
+  state.phase = "running";
+  saveState();
+}
+
+function shareTournoi(){
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Lien du tournoi copié dans le presse-papier !");
+  }).catch(() => {
+    prompt("Copiez ce lien :", url);
+  });
 }
 </script>
 </body>
