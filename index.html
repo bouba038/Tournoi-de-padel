@@ -29,7 +29,6 @@
     .org-badge { background: #d8f3dc; color: var(--primary); border: 1px solid var(--primary); padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
     .reset-btn { background: #faedcd; color: #9c6644; border: 1px solid #ccd5ae; padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
 
-    /* Boutons de sélection du format 12 / 16 */
     .format-toggle { display: flex; gap: 8px; margin-bottom: 15px; }
     .format-btn { flex: 1; padding: 8px; border: 2px solid var(--border); background: white; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); font-size: 0.9rem; text-align: center; }
     .format-btn.active { border-color: var(--primary); background: var(--accent); color: var(--primary); }
@@ -134,7 +133,6 @@
         const indices16 = [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
         seededTeams = indices16.map(idx => teams[idx] || { id: idx, name: "BYE", seed: idx+1 });
       } else {
-        // Format 12 équipes
         const indices12 = [0, 11, 7, 4, 3, 8, 2, 9, 1, 10, 5, 6];
         seededTeams = indices12.map(idx => teams[idx] || { id: idx, name: "BYE", seed: idx+1 });
       }
@@ -148,14 +146,24 @@
             SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           },
+          // Places 5 à 8 : Perdants des Quarts de finale
+          places5_8: {
+            SF: Array.from({length: 2}, (_, i) => ({ id: `p58_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+            F: [{ id: `p58_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+          },
+          // Consolante : Places 9 à 16 (Perdants des Huitièmes de finale)
           consolante: {
-            R1: Array.from({length: 4}, (_, i) => ({ id: `c_r1_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+            QF: Array.from({length: 4}, (_, i) => ({ id: `c_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+          },
+          // Repêchage A : Places 13 à 16 (Perdants des Quarts de consolante)
+          repechageA: {
+            SF: Array.from({length: 2}, (_, i) => ({ id: `repA_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+            F: [{ id: `repA_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           }
         };
       } else {
-        // Structure pour 12 équipes (Quarts de finale directs avec têtes de série exemptes ou tableau adapté)
         state.bracket = {
           size: 12,
           principal: {
@@ -187,26 +195,57 @@
       }
       match.winner = winner;
 
-      let nextRound = null;
+      // Propagation automatique des vainqueurs et perdants
       if (section === "principal") {
-        if (round === "R1") nextRound = "QF";
-        else if (round === "QF") nextRound = state.bracket.size === 16 ? "SF" : "F";
-        else if (round === "SF") nextRound = "F";
+        if (round === "R1") {
+          // Perdants en Huitièmes -> Consolante (Places 9-16)
+          const consMatchIndex = Math.floor(matchIndex / 2);
+          const consMatch = state.bracket.consolante.QF[consMatchIndex];
+          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+
+          // Vainqueurs en Huitièmes -> Quarts de finale
+          const nextMatchIndex = Math.floor(matchIndex / 2);
+          const nextMatch = state.bracket.principal.QF[nextMatchIndex];
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        } else if (round === "QF") {
+          // Perdants en Quarts -> Places 5 à 8
+          const p58Index = Math.floor(matchIndex / 2);
+          const p58Match = state.bracket.places5_8.SF[p58Index];
+          if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
+
+          // Vainqueurs en Quarts -> Demis
+          const nextMatchIndex = Math.floor(matchIndex / 2);
+          const nextMatch = state.bracket.principal.SF[nextMatchIndex];
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        } else if (round === "SF") {
+          const nextMatch = state.bracket.principal.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        }
+      } else if (section === "places5_8") {
+        if (round === "SF") {
+          const nextMatch = state.bracket.places5_8.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        }
       } else if (section === "consolante") {
-        if (round === "R1") nextRound = "SF";
-        else if (round === "SF") nextRound = "F";
-      }
+        if (round === "QF") {
+          // Perdants des Quarts de consolante -> Repêchage A (Places 13-16)
+          const repIndex = Math.floor(matchIndex / 2);
+          const repMatch = state.bracket.repechageA.SF[repIndex];
+          if (matchIndex % 2 === 0) repMatch.t1 = loser; else repMatch.t2 = loser;
 
-      if (nextRound && state.bracket[section][nextRound]) {
-        const nextMatchIndex = Math.floor(matchIndex / 2);
-        const nextMatch = state.bracket[section][nextRound][nextMatchIndex];
-        if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-      }
-
-      if (section === "principal" && round === "R1") {
-        const consMatchIndex = Math.floor(matchIndex / 2);
-        const consMatch = state.bracket.consolante.R1[consMatchIndex];
-        if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+          // Vainqueurs -> Demis consolante
+          const nextMatchIndex = Math.floor(matchIndex / 2);
+          const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        } else if (round === "SF") {
+          const nextMatch = state.bracket.consolante.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        }
+      } else if (section === "repechageA") {
+        if (round === "SF") {
+          const nextMatch = state.bracket.repechageA.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        }
       }
 
       render();
@@ -304,7 +343,7 @@
 
           ${state.activeTab === 'bracket' ? `
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal (Places 1 à 4)</h2></div>
               <div class="rounds">
                 ${b.size === 16 ? `<div class="round-col"><div class="round-label">8èmes</div><div class="matches-col">${(b.principal.R1||[]).map(m=>renderMatchCard(m,"principal","R1")).join('')}</div></div>` : ''}
                 <div class="round-col"><div class="round-label">${b.size === 16 ? 'Quarts' : '1ers Tours'}</div><div class="matches-col">${(b.principal.QF || b.principal.R1 || []).map(m=>renderMatchCard(m,"principal", b.size === 16 ? "QF" : "R1")).join('')}</div></div>
@@ -313,14 +352,34 @@
               </div>
             </div>
 
+            ${b.size === 16 ? `
+              <div class="section">
+                <div class="section-head"><div class="dot" style="background:#e76f51"></div><h2>Places 5 à 8 (Perdants des Quarts)</h2></div>
+                <div class="rounds">
+                  <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(b.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Finale (5-6)</div><div class="matches-col">${(b.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}</div></div>
+                </div>
+              </div>
+            ` : ''}
+
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Consolante</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Consolante (Places 9 à 16)</h2></div>
               <div class="rounds">
-                ${b.size === 16 ? `<div class="round-col"><div class="round-label">Quarts Cons.</div><div class="matches-col">${(b.consolante.R1||[]).map(m=>renderMatchCard(m,"consolante","R1")).join('')}</div></div>` : ''}
+                ${b.size === 16 ? `<div class="round-col"><div class="round-label">Quarts (9-16)</div><div class="matches-col">${(b.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
                 <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(b.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Finale Cons.</div><div class="matches-col">${(b.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}</div></div>
               </div>
             </div>
+
+            ${b.size === 16 ? `
+              <div class="section">
+                <div class="section-head"><div class="dot" style="background:#457b9d"></div><h2>Repêchage A (Places 13 à 16)</h2></div>
+                <div class="rounds">
+                  <div class="round-col"><div class="round-label">Demis (13-16)</div><div class="matches-col">${(b.repechageA.SF||[]).map(m=>renderMatchCard(m,"repechageA","SF")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Finale (13-14)</div><div class="matches-col">${(b.repechageA.F||[]).map(m=>renderMatchCard(m,"repechageA","F")).join('')}</div></div>
+                </div>
+              </div>
+            ` : ''}
           ` : `
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains</h2></div>
