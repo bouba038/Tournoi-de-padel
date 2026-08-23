@@ -18,61 +18,65 @@
       --orange: #e76f51;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 10px; max-width: 1200px; margin: 0 auto; }
+    body { background: var(--bg); color: var(--text); padding: 8px; max-width: 1200px; margin: 0 auto; }
     
-    .banner { background: linear-gradient(135deg, var(--primary), var(--teal)); color: white; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(27,67,50,0.15); }
-    .banner .trophy { font-size: 2rem; }
-    .banner input { background: transparent; border: none; border-bottom: 2px solid rgba(255,255,255,0.5); color: white; font-size: 1.2rem; font-weight: bold; width: 100%; padding: 2px; outline: none; }
-    .banner .sub { font-size: 0.8rem; opacity: 0.9; margin-top: 2px; }
+    .banner { background: linear-gradient(135deg, var(--primary), var(--teal)); color: white; padding: 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(27,67,50,0.15); }
+    .banner .trophy { font-size: 1.8rem; }
+    .banner input { background: transparent; border: none; border-bottom: 2px solid rgba(255,255,255,0.5); color: white; font-size: 1.1rem; font-weight: bold; width: 100%; padding: 2px; outline: none; }
+    .banner .sub { font-size: 0.75rem; opacity: 0.9; margin-top: 2px; }
 
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px; flex-wrap: wrap; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 6px; flex-wrap: wrap; }
     .topbar-group { display: flex; gap: 6px; align-items: center; }
-    .org-badge { background: #d8f3dc; color: var(--primary); border: 1px solid var(--primary); padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-    .share-btn { background: #e0e8e2; color: var(--primary); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-    .reset-btn { background: #faedcd; color: #9c6644; border: 1px solid #ccd5ae; padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    .org-badge { background: #d8f3dc; color: var(--primary); border: 1px solid var(--primary); padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    .share-btn { background: #e0e8e2; color: var(--primary); border: 1px solid var(--border); padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    .reset-btn { background: #faedcd; color: #9c6644; border: 1px solid #ccd5ae; padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
 
-    .format-toggle { display: flex; gap: 8px; margin-bottom: 15px; }
-    .format-btn { flex: 1; padding: 8px; border: 2px solid var(--border); background: white; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); font-size: 0.9rem; text-align: center; }
+    .format-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+    .format-btn { flex: 1; padding: 8px; border: 2px solid var(--border); background: white; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); font-size: 0.85rem; text-align: center; }
     .format-btn.active { border-color: var(--primary); background: var(--accent); color: var(--primary); }
 
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-    .tab-btn { flex: 1; padding: 10px; border: none; background: #e0e8e2; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); text-align: center; font-size: 0.9rem; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab-btn { flex: 1; padding: 8px; border: none; background: #e0e8e2; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); text-align: center; font-size: 0.85rem; }
     .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
 
-    .teams-container { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
-    .team-row { display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); gap: 6px; }
-    .team-row .num { font-weight: bold; color: var(--text-light); width: 20px; font-size: 0.85rem; }
-    .team-row input { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; outline: none; }
+    /* Ligne de saisie optimisée pour affichage vertical mobile */
+    .teams-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+    .team-row { display: flex; align-items: center; background: white; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); gap: 4px; }
+    .team-row .num { font-weight: bold; color: var(--text-light); width: 18px; font-size: 0.75rem; flex-shrink: 0; }
+    .team-row input { flex: 1; min-width: 0; padding: 4px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; outline: none; }
     .team-row input:focus { border-color: var(--primary); }
-    .team-row input.poids { width: 55px; flex: none; text-align: center; }
+    .team-row input.poids { width: 68px; flex: 0 0 68px; text-align: center; font-size: 0.75rem; padding: 4px 2px; }
 
     .actions { display: flex; gap: 8px; margin-bottom: 20px; }
-    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; text-align: center; }
     .btn-primary { background: var(--primary); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
     .btn-primary:hover { background: var(--primary-hover); }
 
-    .section { margin-bottom: 20px; background: white; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
-    .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .section-head .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .section-head h2 { font-size: 1.1rem; color: var(--text); }
+    .section { margin-bottom: 15px; background: white; padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
+    .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .section-head .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .section-head h2 { font-size: 1rem; color: var(--text); }
 
-    .rounds { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
-    .round-col { min-width: 200px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
-    .round-label { font-size: 0.8rem; font-weight: bold; text-transform: uppercase; color: var(--text-light); text-align: center; background: #f0f4f1; padding: 4px; border-radius: 4px; }
-    .matches-col { display: flex; flex-direction: column; gap: 8px; }
+    .rounds { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; align-items: center; }
+    .round-col { min-width: 180px; flex: 1; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+    .round-label { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--text-light); text-align: center; background: #f0f4f1; padding: 3px; border-radius: 4px; }
+    .matches-col { display: flex; flex-direction: column; gap: 6px; }
 
-    .match-card { background: #fdfdfd; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.85rem; }
-    .team-line { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-radius: 4px; }
-    .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); }
-    .team-line input.score { width: 35px; text-align: center; border: 1px solid var(--border); border-radius: 4px; padding: 2px; }
-    .seed { font-size: 0.7rem; background: #e2e8e0; padding: 1px 4px; border-radius: 3px; margin-right: 4px; color: var(--text-light); font-weight: bold; }
+    /* Espacements spécifiques pour centrer les quarts par rapport aux 8èmes */
+    .matches-col.offset-qf { justify-content: space-around; padding: 12px 0; }
+
+    .match-card { background: #fdfdfd; border: 1px solid var(--border); border-radius: 6px; padding: 5px; font-size: 0.8rem; }
+    .team-line { display: flex; justify-content: space-between; align-items: center; padding: 5px 6px; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+    .team-line:hover { background: #f0f4f1; }
+    .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); border: 1px solid var(--teal); }
+    .seed { font-size: 0.65rem; background: #e2e8e0; padding: 1px 3px; border-radius: 3px; margin-right: 3px; color: var(--text-light); font-weight: bold; }
 
     .schedule-table { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
-    .schedule-table th, .schedule-table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; font-size: 0.85rem; }
+    .schedule-table th, .schedule-table td { padding: 6px 8px; border: 1px solid var(--border); text-align: left; font-size: 0.8rem; }
     .schedule-table th { background: var(--primary); color: white; }
     .schedule-table tr:nth-child(even) { background: #f9fbf9; }
     
-    .locked-notice { background: #fff3cd; color: #856404; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 10px; text-align: center; border: 1px solid #ffeeba; }
+    .locked-notice { background: #fff3cd; color: #856404; padding: 6px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 10px; text-align: center; border: 1px solid #ffeeba; }
   </style>
 </head>
 <body>
@@ -161,7 +165,6 @@
         poids: t.poids !== "" ? Number(t.poids) : 0
       }));
 
-      // Tri selon le poids (du plus fort au plus faible) pour déterminer les têtes de série
       teams.sort((a, b) => b.poids - a.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
@@ -171,16 +174,7 @@
         let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
         let rest = shuffleArray(teams.slice(8, 16));
 
-        let seededTeams = [
-          top1_2[0], rest[0], 
-          top5_8[0], top3_4[0], 
-          top5_8[1], rest[1], 
-          rest[2], top1_2[1], // Temporaire, ajusté juste après pour respecter les positions
-          top1_2[1], rest[3], 
-          top5_8[2], top3_4[1], 
-          top5_8[3], rest[4], 
-          rest[5], top1_2[0]
-        ];
+        let seededTeams = new Array(16);
         seededTeams[0] = top1_2[0];
         seededTeams[15] = top1_2[1];
         seededTeams[3] = top3_4[0];
@@ -190,41 +184,41 @@
         seededTeams[10] = top5_8[2];
         seededTeams[14] = top5_8[3];
 
+        let restIdx = 0;
+        for (let i = 0; i < 16; i++) {
+          if (!seededTeams[i]) {
+            seededTeams[i] = rest[restIdx++];
+          }
+        }
+
         state.bracket = {
           size: 16,
           principal: {
-            R1: Array.from({length: 8}, (_, i) => ({ id: `p_r1_${i}`, t1: seededTeams[i*2], t2: seededTeams[i*2+1], s1: "", s2: "", winner: null })),
-            QF: Array.from({length: 4}, (_, i) => ({ id: `p_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            R1: Array.from({length: 8}, (_, i) => ({ id: `p_r1_${i}`, t1: seededTeams[i*2], t2: seededTeams[i*2+1], winner: null })),
+            QF: Array.from({length: 4}, (_, i) => ({ id: `p_qf_${i}`, t1: null, t2: null, winner: null })),
+            SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `p_f_0`, t1: null, t2: null, winner: null }]
           },
           places5_8: {
-            SF: Array.from({length: 2}, (_, i) => ({ id: `p58_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `p58_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            SF: Array.from({length: 2}, (_, i) => ({ id: `p58_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `p58_f_0`, t1: null, t2: null, winner: null }]
           },
           consolante: {
-            QF: Array.from({length: 4}, (_, i) => ({ id: `c_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            QF: Array.from({length: 4}, (_, i) => ({ id: `c_qf_${i}`, t1: null, t2: null, winner: null })),
+            SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }]
           },
           repechageA: {
-            SF: Array.from({length: 2}, (_, i) => ({ id: `repA_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `repA_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            SF: Array.from({length: 2}, (_, i) => ({ id: `repA_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `repA_f_0`, t1: null, t2: null, winner: null }]
           }
         };
 
       } else {
-        // Tournoi 12 équipes :
-        // 1 et 2 aux extrémités des quarts (haut et bas)
         let top1_2 = shuffleArray([teams[0], teams[1]]);
-        // 3 et 4 aléatoires mais ne peuvent croiser 1 ou 2 qu'en demis (répartis dans les autres quarts)
         let top3_4 = shuffleArray([teams[2], teams[3]]);
-        
-        // Quarts de finale directs pour les 4 têtes de série (attendent les vainqueurs du tour 1)
-        // On place 1 et 2 aux positions extrêmes (ex: index 0 et 3), et 3 et 4 aux positions 1 et 2
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
 
-        // 5 à 8 jouent le tour préliminaire contre 9 à 12 tirés au sort
         let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
         let rest9_12 = shuffleArray([teams[8], teams[9], teams[10], teams[11]]);
 
@@ -238,18 +232,18 @@
           size: 12,
           principal: {
             QF: [
-              { id: `p_qf_0`, t1: qfTopTeams[0], t2: null, s1: "", s2: "", winner: null },
-              { id: `p_qf_1`, t1: qfTopTeams[1], t2: null, s1: "", s2: "", winner: null },
-              { id: `p_qf_2`, t1: qfTopTeams[2], t2: null, s1: "", s2: "", winner: null },
-              { id: `p_qf_3`, t1: qfTopTeams[3], t2: null, s1: "", s2: "", winner: null }
+              { id: `p_qf_0`, t1: qfTopTeams[0], t2: null, winner: null },
+              { id: `p_qf_1`, t1: qfTopTeams[1], t2: null, winner: null },
+              { id: `p_qf_2`, t1: qfTopTeams[2], t2: null, winner: null },
+              { id: `p_qf_3`, t1: qfTopTeams[3], t2: null, winner: null }
             ],
-            SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `p_f_0`, t1: null, t2: null, winner: null }]
           },
-          prelim: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: r1MatchesTeams[i*2], t2: r1MatchesTeams[i*2+1], s1: "", s2: "", winner: null })),
+          prelim: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: r1MatchesTeams[i*2], t2: r1MatchesTeams[i*2+1], winner: null })),
           consolante: {
-            SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+            SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }]
           }
         };
       }
@@ -257,9 +251,9 @@
       render();
     }
 
-    function updateScore(section, round, matchId, teamNum, val) {
+    function selectWinner(section, round, matchId, teamNum) {
       if (!state.isOrgSession) {
-        alert("Mode lecteur : vous ne pouvez pas modifier les scores.");
+        alert("Mode lecteur : vous ne pouvez pas modifier les vainqueurs.");
         return;
       }
 
@@ -268,27 +262,25 @@
       if (matchIndex === -1) return;
       
       const match = matchArray[matchIndex];
-      if (teamNum === 1) match.s1 = val; else match.s2 = val;
+      if (!match.t1 || !match.t2) return;
 
-      let winner = null, loser = null;
-      if (match.s1 !== "" && match.s2 !== "") {
-        if (Number(match.s1) > Number(match.s2)) { winner = match.t1; loser = match.t2; }
-        else if (Number(match.s2) > Number(match.s1)) { winner = match.t2; loser = match.t1; }
-      }
+      const winner = teamNum === 1 ? match.t1 : match.t2;
+      const loser = teamNum === 1 ? match.t2 : match.t1;
       match.winner = winner;
 
       if (state.bracket.size === 12) {
         if (section === "prelim") {
           const qfMatch = state.bracket.principal.QF[matchIndex];
           qfMatch.t2 = winner;
+          
+          const consMatchIndex = Math.floor(matchIndex / 2);
+          const consMatch = state.bracket.consolante.SF[consMatchIndex];
+          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+
         } else if (section === "principal" && round === "QF") {
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-          const consMatchIndex = Math.floor(matchIndex / 2);
-          const consMatch = state.bracket.consolante.SF[consMatchIndex];
-          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
         } else if (section === "principal" && round === "SF") {
           const nextMatch = state.bracket.principal.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
@@ -348,18 +340,17 @@
       const t2Name = m.t2 ? `${m.t2.seed ? `<span class="seed">#${m.t2.seed}</span>` : ''}${m.t2.name}` : "En attente...";
       const isW1 = m.winner && m.t1 && m.winner.id === m.t1.id;
       const isW2 = m.winner && m.t2 && m.winner.id === m.t2.id;
-      const disabledAttr = !state.isOrgSession ? 'readonly' : '';
 
       return `
         <div class="match-card">
-          <div class="team-line ${isW1 ? 'winner' : ''}">
+          <div class="team-line ${isW1 ? 'winner' : ''}" onclick="selectWinner('${section}', '${round}', '${m.id}', 1)">
             <span>${t1Name}</span>
-            <input type="number" class="score" value="${m.s1}" ${disabledAttr} oninput="updateScore('${section}', '${round}', '${m.id}', 1, this.value)" />
+            ${isW1 ? '<span>✔</span>' : ''}
           </div>
-          <div style="border-top:1px solid var(--border); margin:3px 0;"></div>
-          <div class="team-line ${isW2 ? 'winner' : ''}">
+          <div style="border-top:1px solid var(--border); margin:2px 0;"></div>
+          <div class="team-line ${isW2 ? 'winner' : ''}" onclick="selectWinner('${section}', '${round}', '${m.id}', 2)">
             <span>${t2Name}</span>
-            <input type="number" class="score" value="${m.s2}" ${disabledAttr} oninput="updateScore('${section}', '${round}', '${m.id}', 2, this.value)" />
+            ${isW2 ? '<span>✔</span>' : ''}
           </div>
         </div>
       `;
@@ -410,7 +401,7 @@
                 <span class="num">${idx+1}.</span>
                 <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
                 <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
-                <input type="text" class="poids" placeholder="Poids" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
+                <input type="text" class="poids" placeholder="Poids" maxlength="6" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
               </div>
             `).join('')}
           </div>
@@ -440,7 +431,7 @@
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal</h2></div>
               <div class="rounds">
                 ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">8èmes</div><div class="matches-col">${(state.bracket.principal.R1||[]).map(m=>renderMatchCard(m,"principal","R1")).join('')}</div></div>` : ''}
-                <div class="round-col"><div class="round-label">Quarts</div><div class="matches-col">${(state.bracket.principal.QF||[]).map(m=>renderMatchCard(m,"principal","QF")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Quarts</div><div class="matches-col offset-qf">${(state.bracket.principal.QF||[]).map(m=>renderMatchCard(m,"principal","QF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Demis</div><div class="matches-col">${(state.bracket.principal.SF||[]).map(m=>renderMatchCard(m,"principal","SF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Finale</div><div class="matches-col">${(state.bracket.principal.F||[]).map(m=>renderMatchCard(m,"principal","F")).join('')}</div></div>
               </div>
