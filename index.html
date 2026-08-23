@@ -35,10 +35,6 @@
     .tab-btn { flex: 1; padding: 12px; border: none; background: #e0e8e2; border-radius: 8px; font-weight: bold; cursor: pointer; color: var(--text-light); text-align: center; }
     .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 
-    .format-toggle { display: flex; gap: 10px; margin-bottom: 20px; }
-    .format-btn { flex: 1; padding: 10px; border: 2px solid var(--border); background: white; border-radius: 8px; font-weight: bold; cursor: pointer; color: var(--text-light); }
-    .format-btn.active-16, .format-btn.active-12 { border-color: var(--primary); background: var(--accent); color: var(--primary); }
-
     .hint { background: #e8f4f8; border-left: 4px solid var(--teal); padding: 12px; border-radius: 0 8px 8px 0; font-size: 0.9rem; margin-bottom: 20px; }
 
     .teams-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
@@ -68,17 +64,12 @@
     .team-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 4px; }
     .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); }
     .team-line input.score { width: 40px; text-align: center; border: 1px solid var(--border); border-radius: 4px; padding: 2px; }
+    .seed { font-size: 0.75rem; background: #e2e8e0; padding: 2px 5px; border-radius: 4px; margin-right: 5px; color: var(--text-light); font-weight: bold; }
 
-    /* Planning / Horaires */
     .schedule-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
     .schedule-table th, .schedule-table td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; font-size: 0.9rem; }
     .schedule-table th { background: var(--primary); color: white; }
     .schedule-table tr:nth-child(even) { background: #f9fbf9; }
-
-    @media (max-width: 768px) {
-      .team-row { flex-direction: column; align-items: stretch; gap: 5px; }
-      .team-row input.poids { width: 100%; }
-    }
   </style>
 </head>
 <body>
@@ -90,7 +81,7 @@
       title: "Tournoi du club",
       format: "16",
       phase: "setup",
-      activeTab: "bracket", // 'bracket' ou 'schedule'
+      activeTab: "bracket",
       isOrgSession: true,
       teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
       bracket: null
@@ -99,24 +90,12 @@
     function isOrganizer() { return state.isOrgSession; }
     function toggleOrganizerMode() { state.isOrgSession = !state.isOrgSession; render(); }
     function switchTab(tab) { state.activeTab = tab; render(); }
-
-    function setFormat(fmt) {
-      state.format = fmt;
-      const count = fmt === '16' ? 16 : 12;
-      if (state.teamEntries.length < count) {
-        while(state.teamEntries.length < count) state.teamEntries.push({ player1: "", player2: "", poids: "" });
-      } else {
-        state.teamEntries = state.teamEntries.slice(0, count);
-      }
-      render();
-    }
-
     function updateTeamEntry(idx, field, val) { state.teamEntries[idx][field] = val; }
-    
+
     function resetSetup() {
       if (confirm("Réinitialiser les équipes ?")) {
         state.phase = "setup";
-        state.teamEntries = Array.from({length: parseInt(state.format)}, () => ({ player1: "", player2: "", poids: "" }));
+        state.teamEntries = Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" }));
         render();
       }
     }
@@ -130,24 +109,33 @@
 
     function launchTournament() {
       state.phase = "running";
-      const teams = state.teamEntries.map((t, i) => ({ id: i, name: (t.player1 || t.player2) ? `${t.player1} / ${t.player2}` : `Équipe ${i+1}` }));
       
-      if (state.format === '16') {
-        state.bracket = {
-          size: 16,
-          principal: {
-            R1: Array.from({length: 8}, (_, i) => ({ id: `p_r1_${i}`, t1: teams[i*2], t2: teams[i*2+1], s1: "", s2: "", winner: null })),
-            QF: Array.from({length: 4}, (_, i) => ({ id: `p_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
-          },
-          consolante: {
-            R1: Array.from({length: 4}, (_, i) => ({ id: `c_r1_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
-            F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
-          }
-        };
-      }
+      let teams = state.teamEntries.map((t, i) => ({
+        id: i,
+        name: (t.player1 || t.player2) ? `${t.player1} / ${t.player2}` : `Équipe ${i+1}`,
+        poids: t.poids !== "" ? Number(t.poids) : 0
+      }));
+
+      teams.sort((a, b) => b.poids - a.poids);
+      teams.forEach((t, index) => { t.seed = index + 1; });
+
+      const indices16 = [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
+      let seededTeams = indices16.map(idx => teams[idx] || { id: idx, name: "BYE", seed: idx+1 });
+
+      state.bracket = {
+        size: 16,
+        principal: {
+          R1: Array.from({length: 8}, (_, i) => ({ id: `p_r1_${i}`, t1: seededTeams[i*2], t2: seededTeams[i*2+1], s1: "", s2: "", winner: null })),
+          QF: Array.from({length: 4}, (_, i) => ({ id: `p_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+          SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+          F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+        },
+        consolante: {
+          R1: Array.from({length: 4}, (_, i) => ({ id: `c_r1_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+          SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
+          F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
+        }
+      };
       render();
     }
 
@@ -192,8 +180,8 @@
     }
 
     function renderMatchCard(m, section, round) {
-      const t1Name = m.t1 ? m.t1.name : "En attente...";
-      const t2Name = m.t2 ? m.t2.name : "En attente...";
+      const t1Name = m.t1 ? `${m.t1.seed ? `<span class="seed">#${m.t1.seed}</span>` : ''}${m.t1.name}` : "En attente...";
+      const t2Name = m.t2 ? `${m.t2.seed ? `<span class="seed">#${m.t2.seed}</span>` : ''}${m.t2.name}` : "En attente...";
       const isW1 = m.winner && m.t1 && m.winner.id === m.t1.id;
       const isW2 = m.winner && m.t2 && m.winner.id === m.t2.id;
 
@@ -238,6 +226,10 @@
           <div class="topbar">
             <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Mode Organisateur Actif' : '🔑 Activer Mode Organisateur'}</button>
             ${organizer ? `<button class="reset-btn" onclick="resetSetup()">🔄 Réinitialiser</button>` : ''}
+          </div>
+
+          <div class="hint">
+            <div>Indiquez le poids (ou niveau) des paires pour classer automatiquement les têtes de série du tournoi.</div>
           </div>
 
           <div class="teams-container">
