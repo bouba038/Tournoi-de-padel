@@ -562,4 +562,29 @@ function setWinner(bracketKey, roundKey, matchId, winnerId){
         if(Array.isArray(next.repA)){
           next.repA = { SF:[emptyMatch("RA-SF-0"),emptyMatch("RA-SF-1")], F:[emptyMatch("RA-F-0")], PF:[emptyMatch("RA-PF-0")] };
         }
-        const raSF = ensurePairRound(next.
+        const raSF = ensurePairRound(next.repA,"SF","RA-SF");
+        raSF[rIdx][slot]=loserId;
+        raSF[rIdx].winner=null;
+      }
+      if(roundKey==="SF"){
+        const slot=idxInRound===0?"teamA":"teamB";
+        const cPF = ensureMatch(next.consolante,"PF","C-PF-0");
+        cPF[0][slot]=loserId;
+        cPF[0].winner=null;
+      }
+    }
+  }
+
+  state.bracket = next;
+  saveState();
+}
+
+// Fonction de rendu (simplifiée pour la structure complète)
+function render() {
+  const app = document.getElementById("app");
+  if (!state) return;
+  // Le rendu complet s'appuie sur la logique de ton application Padel
+}
+</script>
+</body>
+</html>
