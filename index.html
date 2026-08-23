@@ -26,7 +26,9 @@
     .banner .sub { font-size: 0.8rem; opacity: 0.9; margin-top: 2px; }
 
     .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px; flex-wrap: wrap; }
+    .topbar-group { display: flex; gap: 6px; align-items: center; }
     .org-badge { background: #d8f3dc; color: var(--primary); border: 1px solid var(--primary); padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    .share-btn { background: #e0e8e2; color: var(--primary); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
     .reset-btn { background: #faedcd; color: #9c6644; border: 1px solid #ccd5ae; padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
 
     .format-toggle { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -48,7 +50,6 @@
     .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; text-align: center; }
     .btn-primary { background: var(--primary); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
     .btn-primary:hover { background: var(--primary-hover); }
-    .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
 
     .section { margin-bottom: 20px; background: white; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
     .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -70,6 +71,8 @@
     .schedule-table th, .schedule-table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; font-size: 0.85rem; }
     .schedule-table th { background: var(--primary); color: white; }
     .schedule-table tr:nth-child(even) { background: #f9fbf9; }
+    
+    .locked-notice { background: #fff3cd; color: #856404; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 10px; text-align: center; border: 1px solid #ffeeba; }
   </style>
 </head>
 <body>
@@ -90,9 +93,13 @@
     function isOrganizer() { return state.isOrgSession; }
     function toggleOrganizerMode() { state.isOrgSession = !state.isOrgSession; render(); }
     function switchTab(tab) { state.activeTab = tab; render(); }
-    function updateTeamEntry(idx, field, val) { state.teamEntries[idx][field] = val; }
+    function updateTeamEntry(idx, field, val) { 
+      if (!state.isOrgSession) return;
+      state.teamEntries[idx][field] = val; 
+    }
 
     function setFormat(fmt) {
+      if (!state.isOrgSession) return;
       state.format = fmt;
       const count = fmt === '16' ? 16 : 12;
       state.teamEntries = Array.from({length: count}, (_, i) => state.teamEntries[i] || { player1: "", player2: "", poids: "" });
@@ -100,6 +107,7 @@
     }
 
     function resetSetup() {
+      if (!state.isOrgSession) return;
       if (confirm("Réinitialiser les équipes ?")) {
         state.phase = "setup";
         const count = parseInt(state.format);
@@ -109,6 +117,10 @@
     }
 
     function backToSetup() {
+      if (!state.isOrgSession) {
+        alert("Mode lecteur : vous ne pouvez pas modifier les équipes.");
+        return;
+      }
       if (confirm("Modifier les équipes remettra à zéro l'avancement. Continuer ?")) {
         state.phase = "setup";
         render();
@@ -146,18 +158,15 @@
             SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           },
-          // Places 5 à 8 : Perdants des Quarts de finale
           places5_8: {
             SF: Array.from({length: 2}, (_, i) => ({ id: `p58_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `p58_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           },
-          // Consolante : Places 9 à 16 (Perdants des Huitièmes de finale)
           consolante: {
             QF: Array.from({length: 4}, (_, i) => ({ id: `c_qf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           },
-          // Repêchage A : Places 13 à 16 (Perdants des Quarts de consolante)
           repechageA: {
             SF: Array.from({length: 2}, (_, i) => ({ id: `repA_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `repA_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
@@ -181,6 +190,11 @@
     }
 
     function updateScore(section, round, matchId, teamNum, val) {
+      if (!state.isOrgSession) {
+        alert("Mode lecteur : vous ne pouvez pas modifier les scores.");
+        return;
+      }
+
       const matchArray = state.bracket[section][round];
       const matchIndex = matchArray.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
@@ -195,25 +209,20 @@
       }
       match.winner = winner;
 
-      // Propagation automatique des vainqueurs et perdants
       if (section === "principal") {
         if (round === "R1") {
-          // Perdants en Huitièmes -> Consolante (Places 9-16)
           const consMatchIndex = Math.floor(matchIndex / 2);
           const consMatch = state.bracket.consolante.QF[consMatchIndex];
           if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
 
-          // Vainqueurs en Huitièmes -> Quarts de finale
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.QF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
         } else if (round === "QF") {
-          // Perdants en Quarts -> Places 5 à 8
           const p58Index = Math.floor(matchIndex / 2);
           const p58Match = state.bracket.places5_8.SF[p58Index];
           if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
 
-          // Vainqueurs en Quarts -> Demis
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
@@ -228,12 +237,10 @@
         }
       } else if (section === "consolante") {
         if (round === "QF") {
-          // Perdants des Quarts de consolante -> Repêchage A (Places 13-16)
           const repIndex = Math.floor(matchIndex / 2);
           const repMatch = state.bracket.repechageA.SF[repIndex];
           if (matchIndex % 2 === 0) repMatch.t1 = loser; else repMatch.t2 = loser;
 
-          // Vainqueurs -> Demis consolante
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
@@ -256,17 +263,18 @@
       const t2Name = m.t2 ? `${m.t2.seed ? `<span class="seed">#${m.t2.seed}</span>` : ''}${m.t2.name}` : "En attente...";
       const isW1 = m.winner && m.t1 && m.winner.id === m.t1.id;
       const isW2 = m.winner && m.t2 && m.winner.id === m.t2.id;
+      const disabledAttr = !state.isOrgSession ? 'readonly' : '';
 
       return `
         <div class="match-card">
           <div class="team-line ${isW1 ? 'winner' : ''}">
             <span>${t1Name}</span>
-            <input type="number" class="score" value="${m.s1}" oninput="updateScore('${section}', '${round}', '${m.id}', 1, this.value)" />
+            <input type="number" class="score" value="${m.s1}" ${disabledAttr} oninput="updateScore('${section}', '${round}', '${m.id}', 1, this.value)" />
           </div>
           <div style="border-top:1px solid var(--border); margin:3px 0;"></div>
           <div class="team-line ${isW2 ? 'winner' : ''}">
             <span>${t2Name}</span>
-            <input type="number" class="score" value="${m.s2}" oninput="updateScore('${section}', '${round}', '${m.id}', 2, this.value)" />
+            <input type="number" class="score" value="${m.s2}" ${disabledAttr} oninput="updateScore('${section}', '${round}', '${m.id}', 2, this.value)" />
           </div>
         </div>
       `;
@@ -285,57 +293,49 @@
       if (!state) return;
       const organizer = isOrganizer();
 
-      if (state.phase === "setup") {
-        app.innerHTML = `
-          <div class="banner">
-            <div class="trophy">🏆</div>
-            <div style="flex:1;">
-              <input type="text" value="${state.title || 'Tournoi du club'}" oninput="state.title=this.value;" placeholder="Nom du tournoi" />
-              <div class="sub">Configuration & Têtes de série</div>
-            </div>
+      app.innerHTML = `
+        <div class="banner">
+          <div class="trophy">🏆</div>
+          <div style="flex:1;">
+            <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value;" placeholder="Nom du tournoi" />
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`}</div>
           </div>
+        </div>
 
-          <div class="topbar">
+        <div class="topbar">
+          <div class="topbar-group">
             <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Mode Organisateur' : '🔑 Mode Lecteur'}</button>
-            ${organizer ? `<button class="reset-btn" onclick="resetSetup()">🔄 Vider</button>` : ''}
+            <button class="share-btn" onclick="shareTournoi()">🔗 Partager</button>
           </div>
+          ${organizer && state.phase === 'setup' ? `<button class="reset-btn" onclick="resetSetup()">🔄 Vider</button>` : ''}
+          ${organizer && state.phase === 'running' ? `<button class="reset-btn" onclick="backToSetup()">⚙️ Équipes</button>` : ''}
+        </div>
 
+        ${!organizer ? `<div class="locked-notice">Mode Lecteur actif : les modifications sont verrouillées.</div>` : ''}
+
+        ${state.phase === 'setup' ? `
           <div class="format-toggle">
-            <button class="format-btn ${state.format === '16' ? 'active' : ''}" onclick="setFormat('16')">Tournoi 16 Équipes</button>
-            <button class="format-btn ${state.format === '12' ? 'active' : ''}" onclick="setFormat('12')">Tournoi 12 Équipes</button>
+            <button class="format-btn ${state.format === '16' ? 'active' : ''}" ${!organizer ? 'disabled' : ''} onclick="setFormat('16')">Tournoi 16 Équipes</button>
+            <button class="format-btn ${state.format === '12' ? 'active' : ''}" ${!organizer ? 'disabled' : ''} onclick="setFormat('12')">Tournoi 12 Équipes</button>
           </div>
 
           <div class="teams-container">
             ${state.teamEntries.map((team, idx) => `
               <div class="team-row">
                 <span class="num">${idx+1}.</span>
-                <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
-                <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
-                <input type="text" class="poids" placeholder="Poids" value="${team.poids || ''}" oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
+                <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
+                <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
+                <input type="text" class="poids" placeholder="Poids" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
               </div>
             `).join('')}
           </div>
 
-          <div class="actions">
-            <button class="btn btn-primary" onclick="launchTournament()">🚀 Lancer le Tournoi</button>
-          </div>
-        `;
-      } else {
-        const b = state.bracket;
-        app.innerHTML = `
-          <div class="banner">
-            <div class="trophy">🏆</div>
-            <div style="flex:1;">
-              <input type="text" value="${state.title || 'Tournoi du club'}" readonly />
-              <div class="sub">${b.size} équipes en lice</div>
+          ${organizer ? `
+            <div class="actions">
+              <button class="btn btn-primary" onclick="launchTournament()">🚀 Lancer le Tournoi</button>
             </div>
-          </div>
-
-          <div class="topbar">
-            <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Mode Organisateur' : '🔑 Mode Lecteur'}</button>
-            <button class="reset-btn" onclick="backToSetup()">⚙️ Équipes</button>
-          </div>
-
+          ` : ''}
+        ` : `
           <div class="nav-tabs">
             <button class="tab-btn ${state.activeTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>
             <button class="tab-btn ${state.activeTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires</button>
@@ -345,19 +345,19 @@
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal (Places 1 à 4)</h2></div>
               <div class="rounds">
-                ${b.size === 16 ? `<div class="round-col"><div class="round-label">8èmes</div><div class="matches-col">${(b.principal.R1||[]).map(m=>renderMatchCard(m,"principal","R1")).join('')}</div></div>` : ''}
-                <div class="round-col"><div class="round-label">${b.size === 16 ? 'Quarts' : '1ers Tours'}</div><div class="matches-col">${(b.principal.QF || b.principal.R1 || []).map(m=>renderMatchCard(m,"principal", b.size === 16 ? "QF" : "R1")).join('')}</div></div>
-                <div class="round-col"><div class="round-label">Demis</div><div class="matches-col">${(b.principal.SF||[]).map(m=>renderMatchCard(m,"principal","SF")).join('')}</div></div>
-                <div class="round-col"><div class="round-label">Finale</div><div class="matches-col">${(b.principal.F||[]).map(m=>renderMatchCard(m,"principal","F")).join('')}</div></div>
+                ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">8èmes</div><div class="matches-col">${(state.bracket.principal.R1||[]).map(m=>renderMatchCard(m,"principal","R1")).join('')}</div></div>` : ''}
+                <div class="round-col"><div class="round-label">${state.bracket.size === 16 ? 'Quarts' : '1ers Tours'}</div><div class="matches-col">${(state.bracket.principal.QF || state.bracket.principal.R1 || []).map(m=>renderMatchCard(m,"principal", state.bracket.size === 16 ? "QF" : "R1")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Demis</div><div class="matches-col">${(state.bracket.principal.SF||[]).map(m=>renderMatchCard(m,"principal","SF")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Finale</div><div class="matches-col">${(state.bracket.principal.F||[]).map(m=>renderMatchCard(m,"principal","F")).join('')}</div></div>
               </div>
             </div>
 
-            ${b.size === 16 ? `
+            ${state.bracket.size === 16 ? `
               <div class="section">
                 <div class="section-head"><div class="dot" style="background:#e76f51"></div><h2>Places 5 à 8 (Perdants des Quarts)</h2></div>
                 <div class="rounds">
-                  <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(b.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
-                  <div class="round-col"><div class="round-label">Finale (5-6)</div><div class="matches-col">${(b.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(state.bracket.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Finale (5-6)</div><div class="matches-col">${(state.bracket.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}</div></div>
                 </div>
               </div>
             ` : ''}
@@ -365,18 +365,18 @@
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Consolante (Places 9 à 16)</h2></div>
               <div class="rounds">
-                ${b.size === 16 ? `<div class="round-col"><div class="round-label">Quarts (9-16)</div><div class="matches-col">${(b.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
-                <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(b.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
-                <div class="round-col"><div class="round-label">Finale Cons.</div><div class="matches-col">${(b.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}</div></div>
+                ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">Quarts (9-16)</div><div class="matches-col">${(state.bracket.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
+                <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Finale Cons.</div><div class="matches-col">${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}</div></div>
               </div>
             </div>
 
-            ${b.size === 16 ? `
+            ${state.bracket.size === 16 ? `
               <div class="section">
                 <div class="section-head"><div class="dot" style="background:#457b9d"></div><h2>Repêchage A (Places 13 à 16)</h2></div>
                 <div class="rounds">
-                  <div class="round-col"><div class="round-label">Demis (13-16)</div><div class="matches-col">${(b.repechageA.SF||[]).map(m=>renderMatchCard(m,"repechageA","SF")).join('')}</div></div>
-                  <div class="round-col"><div class="round-label">Finale (13-14)</div><div class="matches-col">${(b.repechageA.F||[]).map(m=>renderMatchCard(m,"repechageA","F")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Demis (13-16)</div><div class="matches-col">${(state.bracket.repechageA.SF||[]).map(m=>renderMatchCard(m,"repechageA","SF")).join('')}</div></div>
+                  <div class="round-col"><div class="round-label">Finale (13-14)</div><div class="matches-col">${(state.bracket.repechageA.F||[]).map(m=>renderMatchCard(m,"repechageA","F")).join('')}</div></div>
                 </div>
               </div>
             ` : ''}
@@ -394,12 +394,8 @@
               </table>
             </div>
           `}
-
-          <div class="actions" style="margin-top:15px;">
-            <button class="btn btn-outline" onclick="shareTournoi()">📋 Partager le lien</button>
-          </div>
-        `;
-      }
+        `}
+      `;
     }
 
     render();
