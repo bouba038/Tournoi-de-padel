@@ -85,13 +85,28 @@
       format: "16",
       phase: "setup",
       activeTab: "bracket",
-      isOrgSession: true,
+      isOrgSession: false,
       teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
       bracket: null
     };
 
     function isOrganizer() { return state.isOrgSession; }
-    function toggleOrganizerMode() { state.isOrgSession = !state.isOrgSession; render(); }
+    
+    function toggleOrganizerMode() {
+      if (state.isOrgSession) {
+        state.isOrgSession = false;
+        render();
+      } else {
+        const pin = prompt("Entrez le code organisateur :");
+        if (pin === "2026") {
+          state.isOrgSession = true;
+          render();
+        } else if (pin !== null) {
+          alert("Code incorrect !");
+        }
+      }
+    }
+
     function switchTab(tab) { state.activeTab = tab; render(); }
     function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
@@ -127,6 +142,15 @@
       }
     }
 
+    function shuffleArray(array) {
+      let arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
     function launchTournament() {
       state.phase = "running";
       const formatNum = parseInt(state.format);
@@ -137,19 +161,35 @@
         poids: t.poids !== "" ? Number(t.poids) : 0
       }));
 
+      // Tri selon le poids (du plus fort au plus faible) pour déterminer les têtes de série
       teams.sort((a, b) => b.poids - a.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
-      let seededTeams = [];
       if (formatNum === 16) {
-        const indices16 = [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
-        seededTeams = indices16.map(idx => teams[idx] || { id: idx, name: "BYE", seed: idx+1 });
-      } else {
-        const indices12 = [0, 11, 7, 4, 3, 8, 2, 9, 1, 10, 5, 6];
-        seededTeams = indices12.map(idx => teams[idx] || { id: idx, name: "BYE", seed: idx+1 });
-      }
+        let top1_2 = shuffleArray([teams[0], teams[1]]);
+        let top3_4 = shuffleArray([teams[2], teams[3]]);
+        let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
+        let rest = shuffleArray(teams.slice(8, 16));
 
-      if (formatNum === 16) {
+        let seededTeams = [
+          top1_2[0], rest[0], 
+          top5_8[0], top3_4[0], 
+          top5_8[1], rest[1], 
+          rest[2], top1_2[1], // Temporaire, ajusté juste après pour respecter les positions
+          top1_2[1], rest[3], 
+          top5_8[2], top3_4[1], 
+          top5_8[3], rest[4], 
+          rest[5], top1_2[0]
+        ];
+        seededTeams[0] = top1_2[0];
+        seededTeams[15] = top1_2[1];
+        seededTeams[3] = top3_4[0];
+        seededTeams[11] = top3_4[1];
+        seededTeams[2] = top5_8[0];
+        seededTeams[6] = top5_8[1];
+        seededTeams[10] = top5_8[2];
+        seededTeams[14] = top5_8[3];
+
         state.bracket = {
           size: 16,
           principal: {
@@ -172,20 +212,48 @@
             F: [{ id: `repA_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           }
         };
+
       } else {
+        // Tournoi 12 équipes :
+        // 1 et 2 aux extrémités des quarts (haut et bas)
+        let top1_2 = shuffleArray([teams[0], teams[1]]);
+        // 3 et 4 aléatoires mais ne peuvent croiser 1 ou 2 qu'en demis (répartis dans les autres quarts)
+        let top3_4 = shuffleArray([teams[2], teams[3]]);
+        
+        // Quarts de finale directs pour les 4 têtes de série (attendent les vainqueurs du tour 1)
+        // On place 1 et 2 aux positions extrêmes (ex: index 0 et 3), et 3 et 4 aux positions 1 et 2
+        let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
+
+        // 5 à 8 jouent le tour préliminaire contre 9 à 12 tirés au sort
+        let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
+        let rest9_12 = shuffleArray([teams[8], teams[9], teams[10], teams[11]]);
+
+        let r1MatchesTeams = [];
+        for(let i=0; i<4; i++) {
+          r1MatchesTeams.push(top5_8[i]);
+          r1MatchesTeams.push(rest9_12[i]);
+        }
+
         state.bracket = {
           size: 12,
           principal: {
-            QF: Array.from({length: 4}, (_, i) => ({ id: `p_qf_${i}`, t1: seededTeams[i*2], t2: seededTeams[i*2+1], s1: "", s2: "", winner: null })),
+            QF: [
+              { id: `p_qf_0`, t1: qfTopTeams[0], t2: null, s1: "", s2: "", winner: null },
+              { id: `p_qf_1`, t1: qfTopTeams[1], t2: null, s1: "", s2: "", winner: null },
+              { id: `p_qf_2`, t1: qfTopTeams[2], t2: null, s1: "", s2: "", winner: null },
+              { id: `p_qf_3`, t1: qfTopTeams[3], t2: null, s1: "", s2: "", winner: null }
+            ],
             SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `p_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           },
+          prelim: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: r1MatchesTeams[i*2], t2: r1MatchesTeams[i*2+1], s1: "", s2: "", winner: null })),
           consolante: {
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, s1: "", s2: "", winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, s1: "", s2: "", winner: null }]
           }
         };
       }
+
       render();
     }
 
@@ -195,7 +263,7 @@
         return;
       }
 
-      const matchArray = state.bracket[section][round];
+      let matchArray = section === "prelim" ? state.bracket.prelim : state.bracket[section][round];
       const matchIndex = matchArray.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
       
@@ -209,47 +277,64 @@
       }
       match.winner = winner;
 
-      if (section === "principal") {
-        if (round === "R1") {
-          const consMatchIndex = Math.floor(matchIndex / 2);
-          const consMatch = state.bracket.consolante.QF[consMatchIndex];
-          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
-
-          const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextMatch = state.bracket.principal.QF[nextMatchIndex];
-          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-        } else if (round === "QF") {
-          const p58Index = Math.floor(matchIndex / 2);
-          const p58Match = state.bracket.places5_8.SF[p58Index];
-          if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
-
+      if (state.bracket.size === 12) {
+        if (section === "prelim") {
+          const qfMatch = state.bracket.principal.QF[matchIndex];
+          qfMatch.t2 = winner;
+        } else if (section === "principal" && round === "QF") {
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-        } else if (round === "SF") {
+
+          const consMatchIndex = Math.floor(matchIndex / 2);
+          const consMatch = state.bracket.consolante.SF[consMatchIndex];
+          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+        } else if (section === "principal" && round === "SF") {
           const nextMatch = state.bracket.principal.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-        }
-      } else if (section === "places5_8") {
-        if (round === "SF") {
-          const nextMatch = state.bracket.places5_8.F[0];
-          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-        }
-      } else if (section === "consolante") {
-        if (round === "QF") {
-          const repIndex = Math.floor(matchIndex / 2);
-          const repMatch = state.bracket.repechageA.SF[repIndex];
-          if (matchIndex % 2 === 0) repMatch.t1 = loser; else repMatch.t2 = loser;
-
-          const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
-          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-        } else if (round === "SF") {
+        } else if (section === "consolante" && round === "SF") {
           const nextMatch = state.bracket.consolante.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
         }
-      } else if (section === "repechageA") {
-        if (round === "SF") {
+      } else {
+        if (section === "principal") {
+          if (round === "R1") {
+            const consMatchIndex = Math.floor(matchIndex / 2);
+            const consMatch = state.bracket.consolante.QF[consMatchIndex];
+            if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            const nextMatch = state.bracket.principal.QF[nextMatchIndex];
+            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          } else if (round === "QF") {
+            const p58Index = Math.floor(matchIndex / 2);
+            const p58Match = state.bracket.places5_8.SF[p58Index];
+            if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
+
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            const nextMatch = state.bracket.principal.SF[nextMatchIndex];
+            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          } else if (round === "SF") {
+            const nextMatch = state.bracket.principal.F[0];
+            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          }
+        } else if (section === "places5_8" && round === "SF") {
+          const nextMatch = state.bracket.places5_8.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        } else if (section === "consolante") {
+          if (round === "QF") {
+            const repIndex = Math.floor(matchIndex / 2);
+            const repMatch = state.bracket.repechageA.SF[repIndex];
+            if (matchIndex % 2 === 0) repMatch.t1 = loser; else repMatch.t2 = loser;
+
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
+            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          } else if (round === "SF") {
+            const nextMatch = state.bracket.consolante.F[0];
+            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          }
+        } else if (section === "repechageA" && round === "SF") {
           const nextMatch = state.bracket.repechageA.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
         }
@@ -342,11 +427,20 @@
           </div>
 
           ${state.activeTab === 'bracket' ? `
+            ${state.bracket.size === 12 ? `
+              <div class="section">
+                <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Tour Préliminaire (Têtes 5-8 vs 9-12)</h2></div>
+                <div class="rounds">
+                  <div class="round-col"><div class="round-label">Matchs Tour 1</div><div class="matches-col">${(state.bracket.prelim||[]).map(m=>renderMatchCard(m,"prelim","")).join('')}</div></div>
+                </div>
+              </div>
+            ` : ''}
+
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal (Places 1 à 4)</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Tableau Principal</h2></div>
               <div class="rounds">
                 ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">8èmes</div><div class="matches-col">${(state.bracket.principal.R1||[]).map(m=>renderMatchCard(m,"principal","R1")).join('')}</div></div>` : ''}
-                <div class="round-col"><div class="round-label">${state.bracket.size === 16 ? 'Quarts' : '1ers Tours'}</div><div class="matches-col">${(state.bracket.principal.QF || state.bracket.principal.R1 || []).map(m=>renderMatchCard(m,"principal", state.bracket.size === 16 ? "QF" : "R1")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Quarts</div><div class="matches-col">${(state.bracket.principal.QF||[]).map(m=>renderMatchCard(m,"principal","QF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Demis</div><div class="matches-col">${(state.bracket.principal.SF||[]).map(m=>renderMatchCard(m,"principal","SF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Finale</div><div class="matches-col">${(state.bracket.principal.F||[]).map(m=>renderMatchCard(m,"principal","F")).join('')}</div></div>
               </div>
@@ -354,7 +448,7 @@
 
             ${state.bracket.size === 16 ? `
               <div class="section">
-                <div class="section-head"><div class="dot" style="background:#e76f51"></div><h2>Places 5 à 8 (Perdants des Quarts)</h2></div>
+                <div class="section-head"><div class="dot" style="background:#e76f51"></div><h2>Places 5 à 8</h2></div>
                 <div class="rounds">
                   <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(state.bracket.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
                   <div class="round-col"><div class="round-label">Finale (5-6)</div><div class="matches-col">${(state.bracket.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}</div></div>
@@ -363,23 +457,12 @@
             ` : ''}
 
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Consolante (Places 9 à 16)</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Consolante</h2></div>
               <div class="rounds">
-                ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">Quarts (9-16)</div><div class="matches-col">${(state.bracket.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
                 <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
                 <div class="round-col"><div class="round-label">Finale Cons.</div><div class="matches-col">${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}</div></div>
               </div>
             </div>
-
-            ${state.bracket.size === 16 ? `
-              <div class="section">
-                <div class="section-head"><div class="dot" style="background:#457b9d"></div><h2>Repêchage A (Places 13 à 16)</h2></div>
-                <div class="rounds">
-                  <div class="round-col"><div class="round-label">Demis (13-16)</div><div class="matches-col">${(state.bracket.repechageA.SF||[]).map(m=>renderMatchCard(m,"repechageA","SF")).join('')}</div></div>
-                  <div class="round-col"><div class="round-label">Finale (13-14)</div><div class="matches-col">${(state.bracket.repechageA.F||[]).map(m=>renderMatchCard(m,"repechageA","F")).join('')}</div></div>
-                </div>
-              </div>
-            ` : ''}
           ` : `
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains</h2></div>
