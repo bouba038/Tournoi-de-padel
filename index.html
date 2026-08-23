@@ -769,6 +769,39 @@ function leaveOrganizer(){
   render();
 }
 
+// ================= LABELS DE PLACEMENT =================
+function getMatchPlacementLabel(matchId, format = "16"){
+  const labels16 = {
+    "C-SF-0": "Match de classement (Places 5-8)",
+    "C-SF-1": "Match de classement (Places 5-8)",
+    "C-F-0": "Finale Consolante (Places 5-6)",
+    "C-PF-0": "Petite Finale Consolante (Places 7-8)",
+    
+    "RA-SF-0": "Match de classement (Places 9-12)",
+    "RA-SF-1": "Match de classement (Places 9-12)",
+    "RA-F-0": "Finale Repêchage A (Places 9-10)",
+    "RA-PF-0": "Petite Finale Repêchage A (Places 11-12)",
+
+    "RB-SF-0": "Match de classement (Places 13-16)",
+    "RB-SF-1": "Match de classement (Places 13-16)",
+    "RB-F-0": "Finale Repêchage B (Places 13-14)",
+    "RB-PF-0": "Petite Finale Repêchage B (Places 15-16)"
+  };
+
+  const labels12 = {
+    "C-R1-0": "Match de classement (Places 5-8)",
+    "C-R1-1": "Match de classement (Places 5-8)",
+    "C-F-0": "Finale Consolante (Places 5-6)",
+    "RA-0": "Match de classement (Places 9-12)",
+    "RB-SF-0": "Match de classement (Places 9-12)",
+    "RB-SF-1": "Match de classement (Places 9-12)",
+    "RB-F-0": "Finale Repêchage (Places 9-10)"
+  };
+
+  const currentLabels = format === "12" ? labels12 : labels16;
+  return currentLabels[matchId] || "";
+}
+
 // ================= RENDU =================
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
@@ -911,15 +944,29 @@ function renderSetup(){
 function matchCardHtml(m, accent, counts, bracketKey, roundKey, org, matchNumber){
   const ready = m.teamA && m.teamB;
   const borderColor = m.winner ? accent : "var(--line)";
+  
+  // Ajout de l'affichage de l'enjeu des places pour tous les tableaux sauf principal
+  let placementBadge = "";
+  if(bracketKey !== "principal") {
+    const placementText = getMatchPlacementLabel(m.id, state.bracket.size.toString());
+    if(placementText) {
+      placementBadge = `<div style="font-size:10.5px;color:${accent};font-weight:600;margin-top:3px;padding:0 2px;">📌 ${placementText}</div>`;
+    }
+  }
+
   return `
-    <div style="display:flex;align-items:stretch;gap:7px;">
-      <div style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);">${matchNumber||""}</div>
-      <div class="match-card ${m.winner?'won':''}" style="flex:1;border-color:${borderColor};" data-bracket="${bracketKey}" data-round="${roundKey||''}" data-match="${m.id}">
-        ${teamRowHtmlAccent(m.teamA, m.winner===m.teamA, !ready, counts, accent, org)}
-        ${teamRowHtmlAccent(m.teamB, m.winner===m.teamB, !ready, counts, accent, org)}
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:stretch;gap:7px;">
+        <div style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);">${matchNumber||""}</div>
+        <div class="match-card ${m.winner?'won':''}" style="flex:1;border-color:${borderColor};" data-bracket="${bracketKey}" data-round="${roundKey||''}" data-match="${m.id}">
+          ${teamRowHtmlAccent(m.teamA, m.winner===m.teamA, !ready, counts, accent, org)}
+          ${teamRowHtmlAccent(m.teamB, m.winner===m.teamB, !ready, counts, accent, org)}
+        </div>
       </div>
+      ${placementBadge}
     </div>`;
 }
+
 function teamRowHtmlAccent(id, isWinner, disabled, counts, accent, org){
   const name = id ? state.teams[id] : null;
   const nb = id ? (counts[id]||0) : null;
