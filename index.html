@@ -350,7 +350,11 @@
             if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
           }
         } else if (section === "consolante") {
-          if (round === "SF") {
+          if (round === "QF") {
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
+            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          } else if (round === "SF") {
             const nextMatch = state.bracket.consolante.F[0];
             if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
@@ -508,14 +512,30 @@
             </div>
           ` : `
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains (${state.bracket.size === 16 ? '26 rencontres au total' : '18 rencontres au total'})</h2></div>
               <table class="schedule-table">
                 <thead>
                   <tr><th>Horaire</th><th>Terrain 1</th><th>Terrain 2</th><th>Terrain 3</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>09:00</td><td>Match 1</td><td>Match 2</td><td>Match 3</td></tr>
-                  <tr><td>09:30</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
+                  ${state.bracket.size === 16 ? `
+                    <tr><td>09:00</td><td>Match 1</td><td>Match 2</td><td>Match 3</td></tr>
+                    <tr><td>09:45</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
+                    <tr><td>10:30</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
+                    <tr><td>11:15</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
+                    <tr><td>12:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
+                    <tr><td>12:45</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
+                    <tr><td>13:30</td><td>Match 19</td><td>Match 20</td><td>Match 21</td></tr>
+                    <tr><td>14:15</td><td>Match 22</td><td>Match 23</td><td>Match 24</td></tr>
+                    <tr><td>15:00</td><td>Match 25</td><td>Match 26</td><td>-</td></tr>
+                  ` : `
+                    <tr><td>09:00</td><td>Match 1</td><td>Match 2</td><td>Match 3</td></tr>
+                    <tr><td>09:45</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
+                    <tr><td>10:30</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
+                    <tr><td>11:15</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
+                    <tr><td>12:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
+                    <tr><td>12:45</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
+                  `}
                 </tbody>
               </table>
             </div>
