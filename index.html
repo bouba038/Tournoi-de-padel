@@ -6,75 +6,83 @@
   <title>Tournoi de Padel</title>
   <style>
     :root {
-      --bg: #eef2ed;
+      --bg: #f0f4f8;
       --card-bg: #ffffff;
-      --text: #1f2923;
-      --text-light: #526359;
-      --primary: #1b4332;
-      --primary-hover: #081c15;
-      --accent: #d8f3dc;
-      --border: #c8d6ce;
-      --teal: #2d6a4f;
-      --orange: #e76f51;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --accent: #ccfbf1;
+      --accent-orange: #ffedd5;
+      --accent-purple: #f3e8ff;
+      --border: #e2e8f0;
+      --teal: #0d9488;
+      --orange: #f97316;
+      --purple: #8b5cf6;
+      --blue: #0ea5e9;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 8px; max-width: 1200px; margin: 0 auto; }
+    body { background: var(--bg); color: var(--text); padding: 10px; max-width: 1200px; margin: 0 auto; }
     
-    .banner { background: linear-gradient(135deg, var(--primary), var(--teal)); color: white; padding: 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(27,67,50,0.15); }
-    .banner .trophy { font-size: 1.8rem; }
-    .banner input { background: transparent; border: none; border-bottom: 2px solid rgba(255,255,255,0.5); color: white; font-size: 1.1rem; font-weight: bold; width: 100%; padding: 2px; outline: none; }
-    .banner .sub { font-size: 0.75rem; opacity: 0.9; margin-top: 2px; }
+    .banner { background: linear-gradient(135deg, #0f766e, #0369a1); color: white; padding: 14px; border-radius: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(15,118,110,0.2); }
+    .banner .trophy { font-size: 2rem; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 10px; }
+    .banner input { background: transparent; border: none; border-bottom: 2px solid rgba(255,255,255,0.6); color: white; font-size: 1.2rem; font-weight: bold; width: 100%; padding: 2px; outline: none; }
+    .banner input::placeholder { color: rgba(255,255,255,0.7); }
+    .banner .sub { font-size: 0.8rem; opacity: 0.9; margin-top: 3px; font-weight: 500; }
 
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 6px; flex-wrap: wrap; }
-    .topbar-group { display: flex; gap: 6px; align-items: center; }
-    .org-badge { background: #d8f3dc; color: var(--primary); border: 1px solid var(--primary); padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
-    .share-btn { background: #e0e8e2; color: var(--primary); border: 1px solid var(--border); padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
-    .reset-btn { background: #faedcd; color: #9c6644; border: 1px solid #ccd5ae; padding: 5px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap; }
+    .topbar-group { display: flex; gap: 8px; align-items: center; }
+    .org-badge { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+    .share-btn { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    .reset-btn { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+    .teams-view-btn { background: var(--teal); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(13,148,136,0.2); }
 
-    .format-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
-    .format-btn { flex: 1; padding: 8px; border: 2px solid var(--border); background: white; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); font-size: 0.85rem; text-align: center; }
-    .format-btn.active { border-color: var(--primary); background: var(--accent); color: var(--primary); }
+    .format-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+    .format-btn { flex: 1; padding: 10px; border: 2px solid var(--border); background: white; border-radius: 8px; font-weight: bold; cursor: pointer; color: var(--text-light); font-size: 0.85rem; text-align: center; transition: all 0.2s; }
+    .format-btn.active { border-color: var(--primary); background: var(--accent); color: var(--primary); box-shadow: 0 2px 6px rgba(15,118,110,0.1); }
 
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-    .tab-btn { flex: 1; padding: 8px; border: none; background: #e0e8e2; border-radius: 6px; font-weight: bold; cursor: pointer; color: var(--text-light); text-align: center; font-size: 0.85rem; }
-    .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: #e2e8f0; border-radius: 8px; font-weight: bold; cursor: pointer; color: var(--text-light); text-align: center; font-size: 0.85rem; transition: all 0.2s; }
+    .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 3px 8px rgba(15,118,110,0.25); }
 
-    .teams-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
-    .team-row { display: flex; align-items: center; background: white; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); gap: 4px; }
-    .team-row .num { font-weight: bold; color: var(--text-light); width: 18px; font-size: 0.75rem; flex-shrink: 0; }
-    .team-row input { flex: 1; min-width: 0; padding: 4px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; outline: none; }
-    .team-row input:focus { border-color: var(--primary); }
-    .team-row input.poids { width: 68px; flex: 0 0 68px; text-align: center; font-size: 0.75rem; padding: 4px 2px; }
+    .teams-container { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+    .team-row { display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .team-row .num { font-weight: bold; color: var(--primary); width: 20px; font-size: 0.8rem; flex-shrink: 0; text-align: center; background: var(--accent); border-radius: 4px; padding: 2px 0; }
+    .team-row input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; outline: none; background: #fafafa; }
+    .team-row input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 2px rgba(15,118,110,0.1); }
+    .team-row input.poids { width: 72px; flex: 0 0 72px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--primary); }
 
-    .actions { display: flex; gap: 8px; margin-bottom: 20px; }
-    .btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; text-align: center; }
-    .btn-primary { background: var(--primary); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-    .btn-primary:hover { background: var(--primary-hover); }
+    .actions { display: flex; gap: 10px; margin-bottom: 20px; }
+    .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #047857); color: white; box-shadow: 0 4px 10px rgba(15,118,110,0.25); }
+    .btn-primary:hover { opacity: 0.95; }
+    .btn-secondary { background: #f1f5f9; color: var(--primary); border: 1px solid var(--border); }
 
-    .section { margin-bottom: 15px; background: white; padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
-    .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .section-head .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .section-head h2 { font-size: 1rem; color: var(--text); }
+    .section { margin-bottom: 18px; background: white; padding: 14px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); }
+    .section-head .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .section-head h2 { font-size: 1rem; color: var(--text); font-weight: 700; }
 
-    .rounds { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; align-items: center; }
-    .round-col { min-width: 180px; flex: 1; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-    .round-label { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--text-light); text-align: center; background: #f0f4f1; padding: 3px; border-radius: 4px; }
-    .matches-col { display: flex; flex-direction: column; gap: 6px; }
+    .rounds { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: center; }
+    .round-col { min-width: 190px; flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+    .round-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); text-align: center; background: #f8fafc; padding: 5px; border-radius: 6px; border: 1px solid var(--border); letter-spacing: 0.5px; }
+    .matches-col { display: flex; flex-direction: column; gap: 8px; }
 
-    .matches-col.offset-qf { justify-content: space-around; padding: 12px 0; }
+    .matches-col.offset-qf { justify-content: space-around; padding: 14px 0; }
 
-    .match-card { background: #fdfdfd; border: 1px solid var(--border); border-radius: 6px; padding: 5px; font-size: 0.8rem; }
-    .team-line { display: flex; justify-content: space-between; align-items: center; padding: 5px 6px; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
-    .team-line:hover { background: #f0f4f1; }
-    .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); border: 1px solid var(--teal); }
-    .seed { font-size: 0.65rem; background: #e2e8e0; padding: 1px 3px; border-radius: 3px; margin-right: 3px; color: var(--text-light); font-weight: bold; }
+    .match-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.1s; }
+    .match-card:hover { border-color: #cbd5e1; }
+    .team-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.15s; color: #334155; }
+    .team-line:hover { background: #f1f5f9; }
+    .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); border: 1px solid #99f6e4; }
+    .seed { font-size: 0.65rem; background: #e2e8f0; padding: 2px 5px; border-radius: 4px; margin-right: 5px; color: var(--text-light); font-weight: 700; }
 
-    .schedule-table { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
-    .schedule-table th, .schedule-table td { padding: 6px 8px; border: 1px solid var(--border); text-align: left; font-size: 0.8rem; }
-    .schedule-table th { background: var(--primary); color: white; }
-    .schedule-table tr:nth-child(even) { background: #f9fbf9; }
+    .schedule-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .schedule-table th, .schedule-table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; font-size: 0.8rem; }
+    .schedule-table th { background: var(--primary); color: white; font-weight: 600; }
+    .schedule-table tr:nth-child(even) { background: #f8fafc; }
     
-    .locked-notice { background: #fff3cd; color: #856404; padding: 6px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 10px; text-align: center; border: 1px solid #ffeeba; }
+    .locked-notice { background: #fef3c7; color: #92400e; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; text-align: center; border: 1px solid #fde68a; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
   </style>
 </head>
 <body>
@@ -110,6 +118,7 @@
     }
 
     function switchTab(tab) { state.activeTab = tab; render(); }
+    
     function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
       state.teamEntries[idx][field] = val; 
@@ -134,10 +143,6 @@
     }
 
     function goToSetup() {
-      if (!state.isOrgSession) {
-        alert("Mode lecteur : vous ne pouvez pas modifier les équipes.");
-        return;
-      }
       state.phase = "setup";
       render();
     }
@@ -153,6 +158,7 @@
 
     function launchTournament() {
       state.phase = "running";
+      state.activeTab = "bracket";
       const formatNum = parseInt(state.format);
       
       let teams = state.teamEntries.map((t, i) => ({
@@ -236,6 +242,11 @@
             F: [{ id: `p_f_0`, t1: null, t2: null, winner: null }],
             Third: [{ id: `p_third_0`, t1: null, t2: null, winner: null }]
           },
+          places5_8: {
+            SF: Array.from({length: 2}, (_, i) => ({ id: `p58_sf_${i}`, t1: null, t2: null, winner: null })),
+            F: [{ id: `p58_f_0`, t1: null, t2: null, winner: null }],
+            Seventh: [{ id: `p58_7_0`, t1: null, t2: null, winner: null }]
+          },
           prelim: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: r1MatchesTeams[i*2], t2: r1MatchesTeams[i*2+1], winner: null })),
           consolante: {
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
@@ -278,20 +289,26 @@
           if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
 
         } else if (section === "principal" && round === "QF") {
+          const p58Index = Math.floor(matchIndex / 2);
+          const p58Match = state.bracket.places5_8.SF[p58Index];
+          if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
+
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
         } else if (section === "principal" && round === "SF") {
           const nextMatch = state.bracket.principal.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
-          // Perdants SF vont en petite finale (3e place)
           const thirdMatch = state.bracket.principal.Third[0];
           if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-        } else if (section === "principal" && round === "F") {
-          // Finale principale jouée
-        } else if (section === "principal" && round === "Third") {
-          // Petite finale jouée
+        } else if (section === "places5_8" && round === "SF") {
+          const nextMatch = state.bracket.places5_8.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+          const seventhMatch = state.bracket.places5_8.Seventh[0];
+          if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
         } else if (section === "consolante" && round === "SF") {
           const nextMatch = state.bracket.consolante.F[0];
           if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
@@ -333,14 +350,7 @@
             if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
           }
         } else if (section === "consolante") {
-          if (round === "QF") {
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
-            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            // Perdants des QF de consolante jouent pour les places 13-16
-            // (optionnel mais géré proprement ou simple passage)
-          } else if (round === "SF") {
+          if (round === "SF") {
             const nextMatch = state.bracket.consolante.F[0];
             if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
@@ -398,14 +408,16 @@
 
         <div class="topbar">
           <div class="topbar-group">
-            <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Mode Organisateur' : '🔑 Mode Lecteur'}</button>
+            <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Organisateur' : '🔑 Lecteur'}</button>
             <button class="share-btn" onclick="shareTournoi()">🔗 Partager</button>
           </div>
-          ${organizer && state.phase === 'setup' ? `<button class="reset-btn" onclick="resetSetup()">🔄 Vider</button>` : ''}
-          ${organizer && state.phase === 'running' ? `<button class="reset-btn" onclick="goToSetup()">⚙️ Équipes</button>` : ''}
+          <div class="topbar-group">
+            ${state.phase === 'running' ? `<button class="teams-view-btn" onclick="goToSetup()">👥 Équipes</button>` : ''}
+            ${organizer && state.phase === 'setup' ? `<button class="reset-btn" onclick="resetSetup()">🔄 Vider</button>` : ''}
+          </div>
         </div>
 
-        ${!organizer ? `<div class="locked-notice">Mode Lecteur actif : les modifications sont verrouillées.</div>` : ''}
+        ${!organizer ? `<div class="locked-notice">🔒 Mode Lecteur actif : consultation libre des équipes et des scores.</div>` : ''}
 
         ${state.phase === 'setup' ? `
           <div class="format-toggle">
@@ -416,7 +428,7 @@
           <div class="teams-container">
             ${state.teamEntries.map((team, idx) => `
               <div class="team-row">
-                <span class="num">${idx+1}.</span>
+                <span class="num">${idx+1}</span>
                 <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
                 <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
                 <input type="text" class="poids" placeholder="Poids" maxlength="6" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
@@ -424,11 +436,10 @@
             `).join('')}
           </div>
 
-          ${organizer ? `
-            <div class="actions">
-              <button class="btn btn-primary" onclick="launchTournament()">🚀 Lancer le Tournoi</button>
-            </div>
-          ` : ''}
+          <div class="actions">
+            ${organizer ? `<button class="btn btn-primary" onclick="launchTournament()">🚀 Lancer / Mettre à jour le Tournoi</button>` : ''}
+            ${state.bracket ? `<button class="btn btn-secondary" onclick="state.phase='running'; render();">⬅️ Retour au Tableau</button>` : ''}
+          </div>
         ` : `
           <div class="nav-tabs">
             <button class="tab-btn ${state.activeTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>
@@ -454,44 +465,42 @@
                 <div class="round-col">
                   <div class="round-label">Finales</div>
                   <div class="matches-col">
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center;">Finale (1-2)</div>
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--primary); text-align:center; background:var(--accent); padding:2px; border-radius:4px;">Finale (1-2)</div>
                     ${(state.bracket.principal.F||[]).map(m=>renderMatchCard(m,"principal","F")).join('')}
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px;">Petite Finale (3-4)</div>
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">Petite Finale (3-4)</div>
                     ${(state.bracket.principal.Third||[]).map(m=>renderMatchCard(m,"principal","Third")).join('')}
                   </div>
                 </div>
               </div>
             </div>
 
-            ${state.bracket.size === 16 ? `
-              <div class="section">
-                <div class="section-head"><div class="dot" style="background:#e76f51"></div><h2>Matchs de Classement (Places 5 à 8)</h2></div>
-                <div class="rounds">
-                  <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(state.bracket.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
-                  <div class="round-col">
-                    <div class="round-label">Finales de Classement</div>
-                    <div class="matches-col">
-                      <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center;">5e - 6e place</div>
-                      ${(state.bracket.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}
-                      <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px;">7e - 8e place</div>
-                      ${(state.bracket.places5_8.Seventh||[]).map(m=>renderMatchCard(m,"places5_8","Seventh")).join('')}
-                    </div>
+            <div class="section">
+              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Matchs de Classement (Places 5 à 8)</h2></div>
+              <div class="rounds">
+                <div class="round-col"><div class="round-label">Demis (5-8)</div><div class="matches-col">${(state.bracket.places5_8.SF||[]).map(m=>renderMatchCard(m,"places5_8","SF")).join('')}</div></div>
+                <div class="round-col">
+                  <div class="round-label">Finales de Classement</div>
+                  <div class="matches-col">
+                    <div style="font-size:0.7rem; font-weight:bold; color:#c2410c; text-align:center; background:var(--accent-orange); padding:2px; border-radius:4px;">5e - 6e place</div>
+                    ${(state.bracket.places5_8.F||[]).map(m=>renderMatchCard(m,"places5_8","F")).join('')}
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">7e - 8e place</div>
+                    ${(state.bracket.places5_8.Seventh||[]).map(m=>renderMatchCard(m,"places5_8","Seventh")).join('')}
                   </div>
                 </div>
               </div>
-            ` : ''}
+            </div>
 
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Tableau Consolante ${state.bracket.size === 16 ? '(Places 9 à 16)' : ''}</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--purple)"></div><h2>Tableau Consolante ${state.bracket.size === 16 ? '(Places 9 à 16)' : '(Places 9 à 12)'}</h2></div>
               <div class="rounds">
                 ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">Quarts Cons.</div><div class="matches-col">${(state.bracket.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
                 <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
                 <div class="round-col">
                   <div class="round-label">Finales Cons.</div>
                   <div class="matches-col">
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center;">${state.bracket.size === 16 ? '9e - 10e' : 'Finale'}</div>
+                    <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">9e - 10e place</div>
                     ${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px;">${state.bracket.size === 16 ? '11e - 12e' : '3e Cons.'}</div>
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">${state.bracket.size === 16 ? '11e - 12e' : '11e - 12e'} place</div>
                     ${(state.bracket.consolante.Third || state.bracket.consolante.Eleventh || []).map(m=>renderMatchCard(m,"consolante", state.bracket.size === 16 ? "Eleventh" : "Third")).join('')}
                   </div>
                 </div>
