@@ -523,6 +523,10 @@
                 </div>
                 ${state.bracket.size === 16 ? `
                   <div class="round-col">
+                    <div class="round-label">Demis Cons. (13-16)</div>
+                    <div class="matches-col">${(state.bracket.consolante.SF13_16||[]).map(m=>renderMatchCard(m,"consolante","SF13_16")).join('')}</div>
+                  </div>
+                  <div class="round-col">
                     <div class="round-label">Finales Cons. (13-16)</div>
                     <div class="matches-col">
                       <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">13e - 14e place</div>
