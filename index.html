@@ -97,8 +97,25 @@
       isOrgSession: false,
       teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
       bracket: null,
-      scheduleTimes: {} // { matchId: "09:00" }
+      scheduleTimes: {}
     };
+
+    // Chargement automatique de la sauvegarde s'il y en a une
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem("padel_tournament_state");
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+        } catch(e) {}
+      }
+    }
+
+    // Sauvegarde automatique à chaque modification
+    function saveToLocalStorage() {
+      localStorage.setItem("padel_tournament_state", JSON.stringify(state));
+    }
+
+    loadFromLocalStorage();
 
     function isOrganizer() { return state.isOrgSession; }
     
@@ -121,7 +138,8 @@
     
     function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
-      state.teamEntries[idx][field] = val; 
+      state.teamEntries[idx][field] = val;
+      saveToLocalStorage();
     }
 
     function setFormat(fmt) {
@@ -129,6 +147,7 @@
       state.format = fmt;
       const count = fmt === '16' ? 16 : 12;
       state.teamEntries = Array.from({length: count}, (_, i) => state.teamEntries[i] || { player1: "", player2: "", poids: "" });
+      saveToLocalStorage();
       render();
     }
 
@@ -138,6 +157,9 @@
         state.phase = "setup";
         const count = parseInt(state.format);
         state.teamEntries = Array.from({length: count}, () => ({ player1: "", player2: "", poids: "" }));
+        state.bracket = null;
+        state.scheduleTimes = {};
+        saveToLocalStorage();
         render();
       }
     }
@@ -220,10 +242,10 @@
           }
         };
 
-        // Initialisation automatique des horaires (début à 9h00, 3 matchs par tranche d'1h)
+        // Génération automatique des horaires (début à 9h00 pile, 3 matchs par tranche d'1h)
         let defaultTimes = {};
         let matchesOrdered = getLogicalMatches16();
-        let currentTimeMinutes = 9 * 60; // 09:00 pile
+        let currentTimeMinutes = 9 * 60; // 09:00
         
         matchesOrdered.forEach((item, index) => {
           let hourOffset = Math.floor(index / 3);
@@ -274,6 +296,7 @@
         };
       }
 
+      saveToLocalStorage();
       render();
     }
 
@@ -354,6 +377,7 @@
         }
       }
 
+      saveToLocalStorage();
       render();
     }
 
@@ -378,7 +402,6 @@
       `;
     }
 
-    // Ordre chronologique exact validé (3 terrains)
     function getLogicalMatches16() {
       if (!state.bracket || state.bracket.size !== 16) return [];
       let list = [];
@@ -391,34 +414,25 @@
       const csf = state.bracket.consolante.SF || [];
       const csf13 = state.bracket.consolante.SF13_16 || [];
 
-      // 1. Les 4 premiers matchs du tour préliminaire
       p.forEach(m => list.push({ match: m, label: "Tour Préliminaire" }));
-
-      // 2. Les perdants font leur 1er match de classement (Demis Cons. 13-16) + les 8èmes de finale en même temps
       csf13.forEach(m => list.push({ match: m, label: "Demis Consolante (13-16)" }));
       r1.forEach(m => list.push({ match: m, label: "8èmes de finale (Principal)" }));
 
-      // 3. Dernier match de classement des perdants de la 1ère rencontre (Finales 13-16)
       if (state.bracket.consolante.Thirteenth[0]) list.push({ match: state.bracket.consolante.Thirteenth[0], label: "Finale 13e-14e" });
       if (state.bracket.consolante.Fifteenth[0]) list.push({ match: state.bracket.consolante.Fifteenth[0], label: "Finale 15e-16e" });
 
-      // 4. Premiers tours de classement pour les perdants en 8e (Demis Consolante 9-12) + Tous les Quarts de finale
       csf.forEach(m => list.push({ match: m, label: "Demis Consolante (9-12)" }));
       qf.forEach(m => list.push({ match: m, label: "Quarts de finale (Principal)" }));
 
-      // 5. Fin des matchs de classement de 9 à 12
       if (state.bracket.consolante.F[0]) list.push({ match: state.bracket.consolante.F[0], label: "Finale 9e-10e" });
       if (state.bracket.consolante.Eleventh[0]) list.push({ match: state.bracket.consolante.Eleventh[0], label: "Finale 11e-12e" });
 
-      // 6. Matchs des perdants des quarts (Demis Places 5-8) + Demi-finales principales
       p58sf.forEach(m => list.push({ match: m, label: "Demis (Places 5-8)" }));
       sf.forEach(m => list.push({ match: m, label: "Demis de finale (Principal)" }));
 
-      // 7. Deux derniers matchs des places 5 à 8
       if (state.bracket.places5_8.F[0]) list.push({ match: state.bracket.places5_8.F[0], label: "Finale 5e-6e" });
       if (state.bracket.places5_8.Seventh[0]) list.push({ match: state.bracket.places5_8.Seventh[0], label: "Finale 7e-8e" });
 
-      // 8. Les deux derniers matchs : Petite Finale (3-4) et Finale (1-2)
       if (state.bracket.principal.Third[0]) list.push({ match: state.bracket.principal.Third[0], label: "Petite Finale (3-4)" });
       if (state.bracket.principal.F[0]) list.push({ match: state.bracket.principal.F[0], label: "Finale (1-2)" });
 
@@ -442,7 +456,7 @@
         <div class="banner">
           <div class="trophy">🏆</div>
           <div style="flex:1;">
-            <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value;" placeholder="Nom du tournoi" />
+            <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
             <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`}</div>
           </div>
         </div>
@@ -585,7 +599,7 @@
                           <td>${t1Str}</td>
                           <td>${t2Str}</td>
                           <td>
-                            <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value" />
+                            <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
                           </td>
                         </tr>
                       `;
