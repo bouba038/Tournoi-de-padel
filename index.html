@@ -299,7 +299,7 @@
 
         let matchesOrdered12 = getLogicalMatches12();
         matchesOrdered12.forEach((item, index) => {
-          let hourOffset = Math.floor(index / 3);
+          let hourOffset = Math.floor(index / 3); // 3 matchs par vague = +1h par vague
           let totalMinutes = 9 * 60 + hourOffset * 60;
           let h = Math.floor(totalMinutes / 60);
           let m = totalMinutes % 60;
