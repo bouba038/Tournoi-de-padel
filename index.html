@@ -190,6 +190,8 @@
       teams.sort((a, b) => b.poids - a.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
+      let defaultTimes = {};
+
       if (formatNum === 16) {
         let top1_2 = shuffleArray([teams[0], teams[1]]);
         let top3_4 = shuffleArray([teams[2], teams[3]]);
@@ -240,19 +242,14 @@
           }
         };
 
-        // Calcul direct et exact des horaires (début à 09:00 pile, 3 matchs par tranche d'1h)
-        let defaultTimes = {};
         let matchesOrdered = getLogicalMatches16();
-        
         matchesOrdered.forEach((item, index) => {
           let hourOffset = Math.floor(index / 3);
           let totalMinutes = 9 * 60 + hourOffset * 60;
           let h = Math.floor(totalMinutes / 60);
           let m = totalMinutes % 60;
-          let timeStr = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
-          defaultTimes[item.match.id] = timeStr;
+          defaultTimes[item.match.id] = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
         });
-        state.scheduleTimes = defaultTimes;
 
       } else {
         // Format 12 équipes
@@ -271,6 +268,12 @@
 
         state.bracket = {
           size: 12,
+          prelim: Array.from({length: 4}, (_, i) => ({
+            id: `p_prelim_${i}`,
+            t1: r1MatchesTeams[i*2],
+            t2: r1MatchesTeams[i*2+1],
+            winner: null
+          })),
           principal: {
             QF: [
               { id: `p_qf_0`, t1: qfTopTeams[0], t2: null, winner: null },
@@ -287,15 +290,24 @@
             F: [{ id: `p58_f_0`, t1: null, t2: null, winner: null }],
             Seventh: [{ id: `p58_7_0`, t1: null, t2: null, winner: null }]
           },
-          prelim: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: r1MatchesTeams[i*2], t2: r1MatchesTeams[i*2+1], winner: null })),
           consolante: {
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }],
             Third: [{ id: `c_third_0`, t1: null, t2: null, winner: null }]
           }
         };
+
+        let matchesOrdered12 = getLogicalMatches12();
+        matchesOrdered12.forEach((item, index) => {
+          let hourOffset = Math.floor(index / 3);
+          let totalMinutes = 9 * 60 + hourOffset * 60;
+          let h = Math.floor(totalMinutes / 60);
+          let m = totalMinutes % 60;
+          defaultTimes[item.match.id] = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
+        });
       }
 
+      state.scheduleTimes = defaultTimes;
       saveToLocalStorage();
       render();
     }
@@ -344,7 +356,7 @@
 
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t1 = winner; // Correction logique index
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
         } else if (section === "principal" && round === "SF") {
           const nextMatch = state.bracket.principal.F[0];
@@ -373,6 +385,48 @@
 
             const eleventhMatch = state.bracket.consolante.Eleventh[0];
             if (matchIndex === 0) eleventhMatch.t1 = loser; else eleventhMatch.t2 = loser;
+          }
+        }
+      } else {
+        // Logique 12 équipes
+        if (section === "prelim") {
+          const qfMatch = state.bracket.principal.QF[matchIndex];
+          qfMatch.t2 = winner;
+
+          const consMatchIndex = Math.floor(matchIndex / 2);
+          const consMatch = state.bracket.consolante.SF[consMatchIndex];
+          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+
+        } else if (section === "principal" && round === "QF") {
+          const p58Index = Math.floor(matchIndex / 2);
+          const p58Match = state.bracket.places5_8.SF[p58Index];
+          if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
+
+          const nextMatchIndex = Math.floor(matchIndex / 2);
+          const nextMatch = state.bracket.principal.SF[nextMatchIndex];
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+        } else if (section === "principal" && round === "SF") {
+          const nextMatch = state.bracket.principal.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+          const thirdMatch = state.bracket.principal.Third[0];
+          if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
+
+        } else if (section === "places5_8" && round === "SF") {
+          const nextMatch = state.bracket.places5_8.F[0];
+          if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+          const seventhMatch = state.bracket.places5_8.Seventh[0];
+          if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
+
+        } else if (section === "consolante") {
+          if (round === "SF") {
+            const nextMatch = state.bracket.consolante.F[0];
+            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+            const thirdMatch = state.bracket.consolante.Third[0];
+            if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
           }
         }
       }
@@ -405,7 +459,6 @@
     function getLogicalMatches16() {
       if (!state.bracket || state.bracket.size !== 16) return [];
       let list = [];
-      
       const p = state.bracket.prelim || [];
       const r1 = state.bracket.principal.R1 || [];
       const qf = state.bracket.principal.QF || [];
@@ -426,6 +479,34 @@
 
       if (state.bracket.consolante.F[0]) list.push({ match: state.bracket.consolante.F[0], label: "Finale 9e-10e" });
       if (state.bracket.consolante.Eleventh[0]) list.push({ match: state.bracket.consolante.Eleventh[0], label: "Finale 11e-12e" });
+
+      p58sf.forEach(m => list.push({ match: m, label: "Demis (Places 5-8)" }));
+      sf.forEach(m => list.push({ match: m, label: "Demis de finale (Principal)" }));
+
+      if (state.bracket.places5_8.F[0]) list.push({ match: state.bracket.places5_8.F[0], label: "Finale 5e-6e" });
+      if (state.bracket.places5_8.Seventh[0]) list.push({ match: state.bracket.places5_8.Seventh[0], label: "Finale 7e-8e" });
+
+      if (state.bracket.principal.Third[0]) list.push({ match: state.bracket.principal.Third[0], label: "Petite Finale (3-4)" });
+      if (state.bracket.principal.F[0]) list.push({ match: state.bracket.principal.F[0], label: "Finale (1-2)" });
+
+      return list;
+    }
+
+    function getLogicalMatches12() {
+      if (!state.bracket || state.bracket.size !== 12) return [];
+      let list = [];
+      const p = state.bracket.prelim || [];
+      const qf = state.bracket.principal.QF || [];
+      const sf = state.bracket.principal.SF || [];
+      const p58sf = state.bracket.places5_8.SF || [];
+      const csf = state.bracket.consolante.SF || [];
+
+      p.forEach(m => list.push({ match: m, label: "Premier Tour" }));
+      csf.forEach(m => list.push({ match: m, label: "Demis Consolante (9-12)" }));
+      qf.forEach(m => list.push({ match: m, label: "Quarts de finale (Principal)" }));
+
+      if (state.bracket.consolante.Third[0]) list.push({ match: state.bracket.consolante.Third[0], label: "Petite Finale Consolante" });
+      if (state.bracket.consolante.F[0]) list.push({ match: state.bracket.consolante.F[0], label: "Finale Consolante (9-10)" });
 
       p58sf.forEach(m => list.push({ match: m, label: "Demis (Places 5-8)" }));
       sf.forEach(m => list.push({ match: m, label: "Demis de finale (Principal)" }));
@@ -503,9 +584,9 @@
 
           ${state.activeTab === 'bracket' ? `
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>Tour Préliminaire (Poids 9 à 16)</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>${state.bracket.size === 16 ? 'Tour Préliminaire (Poids 9 à 16)' : 'Premier Tour (Têtes de série 5 à 12)'}</h2></div>
               <div class="rounds">
-                <div class="round-col"><div class="round-label">Matchs Préliminaires</div><div class="matches-col">${(state.bracket.prelim||[]).map(m=>renderMatchCard(m,"prelim","")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Matchs du 1er Tour</div><div class="matches-col">${(state.bracket.prelim||[]).map(m=>renderMatchCard(m,"prelim","")).join('')}</div></div>
               </div>
             </div>
 
@@ -544,16 +625,16 @@
             </div>
 
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--purple)"></div><h2>Tableau Consolante ${state.bracket.size === 16 ? '(Places 9 à 16)' : '(Places 9 à 12)'}</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--purple)"></div><h2>Tableau Consolante (Places 9 à ${state.bracket.size === 16 ? '16' : '12'})</h2></div>
               <div class="rounds">
-                <div class="round-col"><div class="round-label">Demis Cons. (9-12)</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
+                <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
                 <div class="round-col">
-                  <div class="round-label">Finales Cons. (9-12)</div>
+                  <div class="round-label">Finales Cons.</div>
                   <div class="matches-col">
                     <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">9e - 10e place</div>
                     ${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">11e - 12e place</div>
-                    ${(state.bracket.consolante.Eleventh||[]).map(m=>renderMatchCard(m,"consolante","Eleventh")).join('')}
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">${state.bracket.size === 16 ? '11e - 12e place' : '11e - 12e / 3e place'}</div>
+                    ${(state.bracket.size === 16 ? state.bracket.consolante.Eleventh : state.bracket.consolante.Third||[]).map(m=>renderMatchCard(m,"consolante", state.bracket.size === 16 ? "Eleventh" : "Third")).join('')}
                   </div>
                 </div>
                 ${state.bracket.size === 16 ? `
@@ -576,39 +657,35 @@
           ` : `
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning Chronologique (3 Terrains)</h2></div>
-              ${state.bracket.size === 16 ? `
-                <table class="schedule-table">
-                  <thead>
-                    <tr>
-                      <th>Ordre / Tour</th>
-                      <th>Équipe 1</th>
-                      <th>Équipe 2</th>
-                      <th>Horaire</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${getLogicalMatches16().map((item, idx) => {
-                      const m = item.match;
-                      const t1Str = m.t1 ? `${m.t1.seed ? `#${m.t1.seed} ` : ''}${m.t1.name}` : "En attente...";
-                      const t2Str = m.t2 ? `${m.t2.seed ? `#${m.t2.seed} ` : ''}${m.t2.name}` : "En attente...";
-                      const timeVal = state.scheduleTimes[m.id] || "09:00";
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th>Ordre / Tour</th>
+                    <th>Équipe 1</th>
+                    <th>Équipe 2</th>
+                    <th>Horaire</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(state.bracket.size === 16 ? getLogicalMatches16() : getLogicalMatches12()).map((item, idx) => {
+                    const m = item.match;
+                    const t1Str = m.t1 ? `${m.t1.seed ? `#${m.t1.seed} ` : ''}${m.t1.name}` : "En attente...";
+                    const t2Str = m.t2 ? `${m.t2.seed ? `#${m.t2.seed} ` : ''}${m.t2.name}` : "En attente...";
+                    const timeVal = state.scheduleTimes[m.id] || "09:00";
 
-                      return `
-                        <tr>
-                          <td><strong>#${idx+1}</strong><br><span style="font-size:0.7rem; color:var(--text-light);">${item.label}</span></td>
-                          <td>${t1Str}</td>
-                          <td>${t2Str}</td>
-                          <td>
-                            <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
-                          </td>
-                        </tr>
-                      `;
-                    }).join('')}
-                  </tbody>
-                </table>
-              ` : `
-                <p style="font-size:0.85rem; color:var(--text-light); text-align:center; padding:20px;">Le planning chronologique est configuré pour le format 16 équipes.</p>
-              `}
+                    return `
+                      <tr>
+                        <td><strong>#${idx+1}</strong><br><span style="font-size:0.7rem; color:var(--text-light);">${item.label}</span></td>
+                        <td>${t1Str}</td>
+                        <td>${t2Str}</td>
+                        <td>
+                          <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
           `}
         `}
