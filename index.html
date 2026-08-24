@@ -165,19 +165,13 @@
         poids: t.poids !== "" ? Number(t.poids) : 0
       }));
 
-      // Tri par poids décroissant pour déterminer les têtes de série
       teams.sort((a, b) => b.poids - a.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
       if (formatNum === 16) {
-        // Top 4 (TDS 1 à 4)
-        let top1_2 = shuffleArray([teams[0], teams[1]]); // Haut et Bas du tableau
-        let top3_4 = shuffleArray([teams[2], teams[3]]); // Quart de finale
-
-        // TDS 5 à 8 (Attendent en 8èmes)
+        let top1_2 = shuffleArray([teams[0], teams[1]]);
+        let top3_4 = shuffleArray([teams[2], teams[3]]);
         let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
-
-        // 8 dernières équipes (Poids 9 à 16) -> Tour préliminaire (tirées aléatoirement)
         let rest9_16 = shuffleArray(teams.slice(8, 16));
 
         state.bracket = {
@@ -189,19 +183,17 @@
             winner: null
           })),
           principal: {
-            // 8èmes de finale : TDS 5 à 8 vs Vainqueurs du Tour Préliminaire
             R1: Array.from({length: 4}, (_, i) => ({
               id: `p_r1_${i}`,
               t1: top5_8[i],
-              t2: null, // Rempli par les vainqueurs du préliminaire
+              t2: null,
               winner: null
             })),
-            // Quarts de finale : TDS 1, 2, 3, 4 et les 4 vainqueurs des 8èmes
             QF: [
-              { id: `p_qf_0`, t1: top1_2[0], t2: null, winner: null }, // TDS 1 ou 2 (Haut)
-              { id: `p_qf_1`, t1: top3_4[0], t2: null, winner: null }, // TDS 3 ou 4
-              { id: `p_qf_2`, t1: top3_4[1], t2: null, winner: null }, // TDS 3 ou 4
-              { id: `p_qf_3`, t1: top1_2[1], t2: null, winner: null }  // TDS 1 ou 2 (Bas)
+              { id: `p_qf_0`, t1: top1_2[0], t2: null, winner: null },
+              { id: `p_qf_1`, t1: top3_4[0], t2: null, winner: null },
+              { id: `p_qf_2`, t1: top3_4[1], t2: null, winner: null },
+              { id: `p_qf_3`, t1: top1_2[1], t2: null, winner: null }
             ],
             SF: Array.from({length: 2}, (_, i) => ({ id: `p_sf_${i}`, t1: null, t2: null, winner: null })),
             F: [{ id: `p_f_0`, t1: null, t2: null, winner: null }],
@@ -213,7 +205,6 @@
             Seventh: [{ id: `p58_7_0`, t1: null, t2: null, winner: null }]
           },
           consolante: {
-            // Perdants du tour préliminaire (4 équipes) -> 2 matchs de classement (13-16)
             SF13_16: [
               { id: `c_1316_sf_0`, t1: null, t2: null, winner: null },
               { id: `c_1316_sf_1`, t1: null, t2: null, winner: null }
@@ -221,7 +212,6 @@
             Thirteenth: [{ id: `c_13_0`, t1: null, t2: null, winner: null }],
             Fifteenth: [{ id: `c_15_0`, t1: null, t2: null, winner: null }],
 
-            // Perdants des 8èmes de finale (4 équipes) -> Tableau 9-12
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }],
             Eleventh: [{ id: `c_11_0`, t1: null, t2: null, winner: null }]
@@ -229,7 +219,6 @@
         };
 
       } else {
-        // Format 12 équipes (inchangé)
         let top1_2 = shuffleArray([teams[0], teams[1]]);
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
@@ -295,7 +284,9 @@
 
       if (state.bracket.size === 16) {
         if (section === "prelim") {
-          // Vainqueurs tour préliminaire vont affronter les TDS 5-8 en 8èmes (R1)
+          // Vainqueurs tour préliminaire (0,1,2,3) vont en 8èmes (R1) :
+          // Prelim 0 & 1 -> alimentent R1 indices 0 et 1 (dont les vainqueurs vont en QF indice 1)
+          // Prelim 2 & 3 -> alimentent R1 indices 2 et 3 (dont les vainqueurs vont en QF indice 2)
           const r1Match = state.bracket.principal.R1[matchIndex];
           r1Match.t2 = winner;
 
@@ -305,12 +296,12 @@
           if (matchIndex % 2 === 0) sf13Match.t1 = loser; else sf13Match.t2 = loser;
 
         } else if (section === "principal" && round === "R1") {
-          // Vainqueurs des 8èmes vont en quarts de finale
-          const qfMatchIndex = matchIndex < 2 ? matchIndex + 1 : matchIndex + 1; // mapping QF indices 1 et 2
-          // QF est structuré ainsi : [0: TDS 1/2, 1: Vainqueur R1(0)/R1(1), 2: Vainqueur R1(2)/R1(3), 3: TDS 1/2]
-          const targetQfIdx = matchIndex < 2 ? 1 : 2;
+          // Vainqueurs des 8èmes (R1) vont affronter les TDS 3-4 en Quarts de finale
+          // R1(0) et R1(1) qualifient leur vainqueur pour QF[1] (affronter TDS 3/4)
+          // R1(2) et R1(3) qualifient leur vainqueur pour QF[2] (affronter l'autre TDS 3/4)
+          const targetQfIdx = (matchIndex < 2) ? 1 : 2;
           const qfMatch = state.bracket.principal.QF[targetQfIdx];
-          if (matchIndex % 2 === 0) qfMatch.t1 = winner; else qfMatch.t2 = winner;
+          if (matchIndex % 2 === 0) qfMatch.t2 = winner; else qfMatch.t2 = winner;
 
           // Perdants des 8èmes vont en demis consolantes (9-12)
           const consMatchIndex = Math.floor(matchIndex / 2);
@@ -318,12 +309,10 @@
           if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
 
         } else if (section === "principal" && round === "QF") {
-          // Perdants des Quarts vont en matchs de classement 5-8
           const p58Index = Math.floor(matchIndex / 2);
           const p58Match = state.bracket.places5_8.SF[p58Index];
           if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
 
-          // Vainqueurs des Quarts vont en demis principales
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
@@ -358,7 +347,6 @@
           }
         }
       } else {
-        // Logique 12 équipes
         if (section === "prelim") {
           const qfMatch = state.bracket.principal.QF[matchIndex];
           qfMatch.t2 = winner;
