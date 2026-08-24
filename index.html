@@ -100,7 +100,6 @@
       scheduleTimes: {}
     };
 
-    // Chargement automatique de la sauvegarde s'il y en a une
     function loadFromLocalStorage() {
       const saved = localStorage.getItem("padel_tournament_state");
       if (saved) {
@@ -110,7 +109,6 @@
       }
     }
 
-    // Sauvegarde automatique à chaque modification
     function saveToLocalStorage() {
       localStorage.setItem("padel_tournament_state", JSON.stringify(state));
     }
@@ -159,7 +157,7 @@
         state.teamEntries = Array.from({length: count}, () => ({ player1: "", player2: "", poids: "" }));
         state.bracket = null;
         state.scheduleTimes = {};
-        saveToLocalStorage();
+        localStorage.removeItem("padel_tournament_state");
         render();
       }
     }
@@ -242,15 +240,17 @@
           }
         };
 
-        // Génération automatique des horaires (début à 9h00 pile, 3 matchs par tranche d'1h)
+        // Calcul direct et exact des horaires (début à 09:00 pile, 3 matchs par tranche d'1h)
         let defaultTimes = {};
         let matchesOrdered = getLogicalMatches16();
-        let currentTimeMinutes = 9 * 60; // 09:00
         
         matchesOrdered.forEach((item, index) => {
           let hourOffset = Math.floor(index / 3);
-          let mTime = new Date((currentTimeMinutes + hourOffset * 60) * 60000).toTimeString().substring(0, 5);
-          defaultTimes[item.match.id] = mTime;
+          let totalMinutes = 9 * 60 + hourOffset * 60;
+          let h = Math.floor(totalMinutes / 60);
+          let m = totalMinutes % 60;
+          let timeStr = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
+          defaultTimes[item.match.id] = timeStr;
         });
         state.scheduleTimes = defaultTimes;
 
@@ -344,7 +344,7 @@
 
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t1 = winner; // Correction logique index
 
         } else if (section === "principal" && round === "SF") {
           const nextMatch = state.bracket.principal.F[0];
