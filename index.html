@@ -211,7 +211,10 @@
             QF: Array.from({length: 4}, (_, i) => ({ id: `c_qf_${i}`, t1: null, t2: null, winner: null })),
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }],
-            Eleventh: [{ id: `c_11_0`, t1: null, t2: null, winner: null }]
+            Eleventh: [{ id: `c_11_0`, t1: null, t2: null, winner: null }],
+            SF13_16: Array.from({length: 2}, (_, i) => ({ id: `c_1316_sf_${i}`, t1: null, t2: null, winner: null })),
+            Thirteenth: [{ id: `c_13_0`, t1: null, t2: null, winner: null }],
+            Fifteenth: [{ id: `c_15_0`, t1: null, t2: null, winner: null }]
           }
         };
 
@@ -354,12 +357,22 @@
             const nextMatchIndex = Math.floor(matchIndex / 2);
             const nextMatch = state.bracket.consolante.SF[nextMatchIndex];
             if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+            const sf13Index = Math.floor(matchIndex / 2);
+            const sf13Match = state.bracket.consolante.SF13_16[sf13Index];
+            if (matchIndex % 2 === 0) sf13Match.t1 = loser; else sf13Match.t2 = loser;
           } else if (round === "SF") {
             const nextMatch = state.bracket.consolante.F[0];
             if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
             const eleventhMatch = state.bracket.consolante.Eleventh[0];
             if (matchIndex === 0) eleventhMatch.t1 = loser; else eleventhMatch.t2 = loser;
+          } else if (round === "SF13_16") {
+            const nextMatch = state.bracket.consolante.Thirteenth[0];
+            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+
+            const fifteenMatch = state.bracket.consolante.Fifteenth[0];
+            if (matchIndex === 0) fifteenMatch.t1 = loser; else fifteenMatch.t2 = loser;
           }
         }
       }
@@ -500,19 +513,30 @@
                 ${state.bracket.size === 16 ? `<div class="round-col"><div class="round-label">Quarts Cons.</div><div class="matches-col">${(state.bracket.consolante.QF||[]).map(m=>renderMatchCard(m,"consolante","QF")).join('')}</div></div>` : ''}
                 <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
                 <div class="round-col">
-                  <div class="round-label">Finales Cons.</div>
+                  <div class="round-label">Finales Cons. (9-12)</div>
                   <div class="matches-col">
                     <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">9e - 10e place</div>
                     ${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">${state.bracket.size === 16 ? '11e - 12e' : '11e - 12e'} place</div>
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">11e - 12e place</div>
                     ${(state.bracket.consolante.Third || state.bracket.consolante.Eleventh || []).map(m=>renderMatchCard(m,"consolante", state.bracket.size === 16 ? "Eleventh" : "Third")).join('')}
                   </div>
                 </div>
+                ${state.bracket.size === 16 ? `
+                  <div class="round-col">
+                    <div class="round-label">Finales Cons. (13-16)</div>
+                    <div class="matches-col">
+                      <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">13e - 14e place</div>
+                      ${(state.bracket.consolante.Thirteenth||[]).map(m=>renderMatchCard(m,"consolante","Thirteenth")).join('')}
+                      <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">15e - 16e place</div>
+                      ${(state.bracket.consolante.Fifteenth||[]).map(m=>renderMatchCard(m,"consolante","Fifteenth")).join('')}
+                    </div>
+                  </div>
+                ` : ''}
               </div>
             </div>
           ` : `
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains (${state.bracket.size === 16 ? '26 rencontres au total' : '18 rencontres au total'})</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning des Terrains (${state.bracket.size === 16 ? '28 rencontres au total' : '18 rencontres au total'})</h2></div>
               <table class="schedule-table">
                 <thead>
                   <tr><th>Horaire</th><th>Terrain 1</th><th>Terrain 2</th><th>Terrain 3</th></tr>
@@ -520,21 +544,22 @@
                 <tbody>
                   ${state.bracket.size === 16 ? `
                     <tr><td>09:00</td><td>Match 1</td><td>Match 2</td><td>Match 3</td></tr>
-                    <tr><td>09:45</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
-                    <tr><td>10:30</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
-                    <tr><td>11:15</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
-                    <tr><td>12:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
-                    <tr><td>12:45</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
-                    <tr><td>13:30</td><td>Match 19</td><td>Match 20</td><td>Match 21</td></tr>
-                    <tr><td>14:15</td><td>Match 22</td><td>Match 23</td><td>Match 24</td></tr>
-                    <tr><td>15:00</td><td>Match 25</td><td>Match 26</td><td>-</td></tr>
+                    <tr><td>10:00</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
+                    <tr><td>11:00</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
+                    <tr><td>12:00</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
+                    <tr><td>13:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
+                    <tr><td>14:00</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
+                    <tr><td>15:00</td><td>Match 19</td><td>Match 20</td><td>Match 21</td></tr>
+                    <tr><td>16:00</td><td>Match 22</td><td>Match 23</td><td>Match 24</td></tr>
+                    <tr><td>17:00</td><td>Match 25</td><td>Match 26</td><td>Match 27</td></tr>
+                    <tr><td>18:00</td><td>Match 28</td><td>-</td><td>-</td></tr>
                   ` : `
                     <tr><td>09:00</td><td>Match 1</td><td>Match 2</td><td>Match 3</td></tr>
-                    <tr><td>09:45</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
-                    <tr><td>10:30</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
-                    <tr><td>11:15</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
-                    <tr><td>12:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
-                    <tr><td>12:45</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
+                    <tr><td>10:00</td><td>Match 4</td><td>Match 5</td><td>Match 6</td></tr>
+                    <tr><td>11:00</td><td>Match 7</td><td>Match 8</td><td>Match 9</td></tr>
+                    <tr><td>12:00</td><td>Match 10</td><td>Match 11</td><td>Match 12</td></tr>
+                    <tr><td>13:00</td><td>Match 13</td><td>Match 14</td><td>Match 15</td></tr>
+                    <tr><td>14:00</td><td>Match 16</td><td>Match 17</td><td>Match 18</td></tr>
                   `}
                 </tbody>
               </table>
