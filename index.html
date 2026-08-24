@@ -20,6 +20,9 @@
       --orange: #f97316;
       --purple: #8b5cf6;
       --blue: #0ea5e9;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #166534;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 10px; max-width: 1200px; margin: 0 auto; }
@@ -79,8 +82,14 @@
     .schedule-table th, .schedule-table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; font-size: 0.8rem; }
     .schedule-table th { background: var(--primary); color: white; font-weight: 600; }
     .schedule-table tr:nth-child(even) { background: #f8fafc; }
+    .schedule-table tr.match-finished { background-color: var(--success-bg) !important; }
+    .schedule-table tr.match-finished td { border-color: var(--success-border); }
     .schedule-table input { width: 100%; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; background: #fff; text-align: center; font-weight: 600; color: var(--primary); }
     
+    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-top: 2px; }
+    .status-badge.finished { background: #dcfce7; color: var(--success-text); border: 1px solid var(--success-border); }
+    .status-badge.pending { background: #f1f5f9; color: var(--text-light); border: 1px solid var(--border); }
+
     .locked-notice { background: #fef3c7; color: #92400e; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; text-align: center; border: 1px solid #fde68a; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
   </style>
 </head>
@@ -299,7 +308,7 @@
 
         let matchesOrdered12 = getLogicalMatches12();
         matchesOrdered12.forEach((item, index) => {
-          let hourOffset = Math.floor(index / 3); // 3 matchs par vague = +1h par vague
+          let hourOffset = Math.floor(index / 3);
           let totalMinutes = 9 * 60 + hourOffset * 60;
           let h = Math.floor(totalMinutes / 60);
           let m = totalMinutes % 60;
@@ -356,6 +365,7 @@
 
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
+          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t1 = winner; // Corrigé SF t1/t2
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
         } else if (section === "principal" && round === "SF") {
@@ -579,7 +589,7 @@
         ` : `
           <div class="nav-tabs">
             <button class="tab-btn ${state.activeTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>
-            <button class="tab-btn ${state.activeTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires (3 Terrains)</button>
+            <button class="tab-btn ${state.activeTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires</button>
           </div>
 
           ${state.activeTab === 'bracket' ? `
@@ -656,7 +666,7 @@
             </div>
           ` : `
             <div class="section">
-              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning Chronologique (3 Terrains)</h2></div>
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning Chronologique</h2></div>
               <table class="schedule-table">
                 <thead>
                   <tr>
@@ -669,15 +679,20 @@
                 <tbody>
                   ${(state.bracket.size === 16 ? getLogicalMatches16() : getLogicalMatches12()).map((item, idx) => {
                     const m = item.match;
+                    const isFinished = m.winner !== null;
                     const t1Str = m.t1 ? `${m.t1.seed ? `#${m.t1.seed} ` : ''}${m.t1.name}` : "En attente...";
                     const t2Str = m.t2 ? `${m.t2.seed ? `#${m.t2.seed} ` : ''}${m.t2.name}` : "En attente...";
                     const timeVal = state.scheduleTimes[m.id] || "09:00";
 
                     return `
-                      <tr>
-                        <td><strong>#${idx+1}</strong><br><span style="font-size:0.7rem; color:var(--text-light);">${item.label}</span></td>
-                        <td>${t1Str}</td>
-                        <td>${t2Str}</td>
+                      <tr class="${isFinished ? 'match-finished' : ''}">
+                        <td>
+                          <strong>#${idx+1}</strong><br>
+                          <span style="font-size:0.7rem; color:var(--text-light);">${item.label}</span><br>
+                          <span class="status-badge ${isFinished ? 'finished' : 'pending'}">${isFinished ? '✔ Terminé' : 'À jouer'}</span>
+                        </td>
+                        <td>${isFinished && m.winner.id === m.t1?.id ? `<strong>🏆 ${t1Str}</strong>` : t1Str}</td>
+                        <td>${isFinished && m.winner.id === m.t2?.id ? `<strong>🏆 ${t2Str}</strong>` : t2Str}</td>
                         <td>
                           <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
                         </td>
