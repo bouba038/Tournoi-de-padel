@@ -19,7 +19,6 @@
       --teal: #0d9488;
       --orange: #f97316;
       --purple: #8b5cf6;
-      --blue: #0ea5e9;
       --success-bg: #f0fdf4;
       --success-border: #bbf7d0;
       --success-text: #166534;
@@ -60,7 +59,6 @@
     .actions { display: flex; gap: 10px; margin-bottom: 20px; }
     .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; text-align: center; }
     .btn-primary { background: linear-gradient(135deg, var(--primary), #047857); color: white; box-shadow: 0 4px 10px rgba(15,118,110,0.25); }
-    .btn-primary:hover { opacity: 0.95; }
     .btn-secondary { background: #f1f5f9; color: var(--primary); border: 1px solid var(--border); }
 
     .section { margin-bottom: 18px; background: white; padding: 14px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
@@ -73,8 +71,7 @@
     .round-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); text-align: center; background: #f8fafc; padding: 5px; border-radius: 6px; border: 1px solid var(--border); letter-spacing: 0.5px; }
     .matches-col { display: flex; flex-direction: column; gap: 8px; }
 
-    .match-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.1s; }
-    .match-card:hover { border-color: #cbd5e1; }
+    .match-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
     .team-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.15s; color: #334155; }
     .team-line:hover { background: #f1f5f9; }
     .team-line.winner { background: var(--accent); font-weight: bold; color: var(--primary); border: 1px solid #99f6e4; }
@@ -85,13 +82,11 @@
     .schedule-table th { background: var(--primary); color: white; font-weight: 600; }
     .schedule-table tr:nth-child(even) { background: #f8fafc; }
     .schedule-table tr.match-finished { background-color: var(--success-bg) !important; }
-    .schedule-table tr.match-finished td { border-color: var(--success-border); }
     .schedule-table input { width: 100%; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; background: #fff; text-align: center; font-weight: 600; color: var(--primary); }
     
     .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-top: 2px; }
     .status-badge.finished { background: #dcfce7; color: var(--success-text); border: 1px solid var(--success-border); }
     .status-badge.pending { background: #f1f5f9; color: var(--text-light); border: 1px solid var(--border); }
-
     .locked-notice { background: #fef3c7; color: #92400e; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; text-align: center; border: 1px solid #fde68a; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
   </style>
 </head>
@@ -114,21 +109,14 @@
 
     function loadFromLocalStorage() {
       const saved = localStorage.getItem("padel_tournament_state");
-      if (saved) {
-        try {
-          state = JSON.parse(saved);
-        } catch(e) {}
-      }
+      if (saved) { try { state = JSON.parse(saved); } catch(e) {} }
     }
+    loadFromLocalStorage();
 
     function saveToLocalStorage() {
       localStorage.setItem("padel_tournament_state", JSON.stringify(state));
     }
 
-    loadFromLocalStorage();
-
-    function isOrganizer() { return state.isOrgSession; }
-    
     function toggleOrganizerMode() {
       if (state.isOrgSession) {
         state.isOrgSession = false;
@@ -138,9 +126,7 @@
         if (pin === "2026") {
           state.isOrgSession = true;
           render();
-        } else if (pin !== null) {
-          alert("Code incorrect !");
-        }
+        } else if (pin !== null) { alert("Code incorrect !"); }
       }
     }
 
@@ -174,10 +160,7 @@
       }
     }
 
-    function goToSetup() {
-      state.phase = "setup";
-      render();
-    }
+    function goToSetup() { state.phase = "setup"; render(); }
 
     function shuffleArray(array) {
       let arr = [...array];
@@ -188,11 +171,20 @@
       return arr;
     }
 
-    function saveTournamentFile() {
-      if (!state.isOrgSession) {
-        alert("Action réservée à l'organisateur.");
-        return;
+    function assignNextAvailableSlot(matchesArray, team) {
+      for (let m of matchesArray) {
+        if (!m.t1) { m.t1 = team; return; }
+        else if (!m.t2) { m.t2 = team; return; }
       }
+      // S'il n'y a plus de place, on force sur le premier match
+      if (matchesArray.length > 0) {
+        if (!matchesArray[0].t1) matchesArray[0].t1 = team;
+        else matchesArray[0].t2 = team;
+      }
+    }
+
+    function saveTournamentFile() {
+      if (!state.isOrgSession) { alert("Action réservée à l'organisateur."); return; }
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
@@ -203,10 +195,7 @@
     }
 
     function triggerLoadTournamentFile() {
-      if (!state.isOrgSession) {
-        alert("Action réservée à l'organisateur.");
-        return;
-      }
+      if (!state.isOrgSession) { alert("Action réservée à l'organisateur."); return; }
       document.getElementById('importFile').click();
     }
 
@@ -222,12 +211,8 @@
             saveToLocalStorage();
             render();
             alert("Tournoi chargé avec succès !");
-          } else {
-            alert("Fichier de tournoi invalide.");
-          }
-        } catch(err) {
-          alert("Erreur lors de la lecture du fichier.");
-        }
+          } else { alert("Fichier invalide."); }
+        } catch(err) { alert("Erreur de lecture."); }
       };
       reader.readAsText(file);
       event.target.value = "";
@@ -244,7 +229,6 @@
         poids: t.poids !== "" ? Number(t.poids) : 999999
       }));
 
-      // Tri croissant (le poids le plus faible devient tête de série n°1)
       teams.sort((a, b) => a.poids - b.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
@@ -265,12 +249,7 @@
             winner: null
           })),
           principal: {
-            R1: Array.from({length: 4}, (_, i) => ({
-              id: `p_r1_${i}`,
-              t1: top5_8[i],
-              t2: null,
-              winner: null
-            })),
+            R1: Array.from({length: 4}, (_, i) => ({ id: `p_r1_${i}`, t1: top5_8[i], t2: null, winner: null })),
             QF: [
               { id: `p_qf_0`, t1: top1_2[0], t2: null, winner: null },
               { id: `p_qf_1`, t1: top3_4[0], t2: null, winner: null },
@@ -293,28 +272,22 @@
             ],
             Thirteenth: [{ id: `c_13_0`, t1: null, t2: null, winner: null }],
             Fifteenth: [{ id: `c_15_0`, t1: null, t2: null, winner: null }],
-
             SF: Array.from({length: 2}, (_, i) => ({ id: `c_sf_${i}`, t1: null, t2: null, winner: null })),
             F: [{ id: `c_f_0`, t1: null, t2: null, winner: null }],
             Eleventh: [{ id: `c_11_0`, t1: null, t2: null, winner: null }]
           }
         };
 
-        let matchesOrdered = getLogicalMatches16();
-        matchesOrdered.forEach((item, index) => {
-          let hourOffset = Math.floor(index / 3);
-          let totalMinutes = 9 * 60 + hourOffset * 60;
-          let h = Math.floor(totalMinutes / 60);
-          let m = totalMinutes % 60;
+        getLogicalMatches16().forEach((item, index) => {
+          let totalMinutes = 9 * 60 + Math.floor(index / 3) * 60;
+          let h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
           defaultTimes[item.match.id] = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
         });
 
       } else {
-        // Format 12 équipes
         let top1_2 = shuffleArray([teams[0], teams[1]]);
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
-
         let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
         let rest9_12 = shuffleArray([teams[8], teams[9], teams[10], teams[11]]);
 
@@ -355,12 +328,9 @@
           }
         };
 
-        let matchesOrdered12 = getLogicalMatches12();
-        matchesOrdered12.forEach((item, index) => {
-          let hourOffset = Math.floor(index / 3);
-          let totalMinutes = 9 * 60 + hourOffset * 60;
-          let h = Math.floor(totalMinutes / 60);
-          let m = totalMinutes % 60;
+        getLogicalMatches12().forEach((item, index) => {
+          let totalMinutes = 9 * 60 + Math.floor(index / 3) * 60;
+          let h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
           defaultTimes[item.match.id] = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m);
         });
       }
@@ -368,22 +338,6 @@
       state.scheduleTimes = defaultTimes;
       saveToLocalStorage();
       render();
-    }
-
-    // CORRECTION : Attribution aléatoire des gagnants de préliminaires dans les tableaux cibles
-    function distributePrelimWinnersRandomly() {
-      if (!state.bracket) return;
-      const size = state.bracket.size;
-
-      if (size === 16) {
-        let prelimWinners = shuffleArray(state.bracket.prelim.map(m => m.winner));
-        // 4 gagnants vont dans R1 (face aux top 5-8)
-        state.bracket.principal.R1.forEach((m, idx) => { m.t2 = prelimWinners[idx]; });
-      } else if (size === 12) {
-        let prelimWinners = shuffleArray(state.bracket.prelim.map(m => m.winner));
-        // 4 gagnants vont dans QF (face aux têtes de série 1-4)
-        state.bracket.principal.QF.forEach((m, idx) => { m.t2 = prelimWinners[idx]; });
-      }
     }
 
     function selectWinner(section, round, matchId, teamNum) {
@@ -406,105 +360,81 @@
       const loser = teamNum === 1 ? match.t2 : match.t1;
       match.winner = winner;
 
-      // Si c'est le tour préliminaire, on vérifie si tous les matchs sont terminés pour distribuer aléatoirement
-      if (section === "prelim") {
-        const allPrelimDone = state.bracket.prelim.every(m => m.winner !== null);
-        if (allPrelimDone) {
-          distributePrelimWinnersRandomly();
-        }
+      const size = state.bracket.size;
 
-        // Gestion des perdants du préliminaire (envoi en consolante 13-16 ou 9-12)
-        if (state.bracket.size === 16) {
-          const sf13Index = Math.floor(matchIndex / 2);
-          const sf13Match = state.bracket.consolante.SF13_16[sf13Index];
-          if (matchIndex % 2 === 0) sf13Match.t1 = loser; else sf13Match.t2 = loser;
-        } else {
-          const consMatchIndex = Math.floor(matchIndex / 2);
-          const consMatch = state.bracket.consolante.SF[consMatchIndex];
-          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+      if (size === 16) {
+        if (section === "prelim") {
+          assignNextAvailableSlot(state.bracket.principal.R1, winner);
+          assignNextAvailableSlot(state.bracket.consolante.SF13_16, loser);
+
+        } else if (section === "principal" && round === "R1") {
+          const qfMatch = state.bracket.principal.QF[matchIndex];
+          if (qfMatch) { if (!qfMatch.t1) qfMatch.t1 = winner; else if (!qfMatch.t2) qfMatch.t2 = winner; }
+          const csfMatch = state.bracket.consolante.SF[Math.floor(matchIndex / 2)];
+          if (csfMatch) { if (!csfMatch.t1) csfMatch.t1 = loser; else if (!csfMatch.t2) csfMatch.t2 = loser; }
+
+        } else if (section === "principal" && round === "QF") {
+          let sfIdx = Math.floor(matchIndex / 2);
+          const sfMatch = state.bracket.principal.SF[sfIdx];
+          if (sfMatch) { if (!sfMatch.t1) sfMatch.t1 = winner; else if (!sfMatch.t2) sfMatch.t2 = winner; }
+          const p58Match = state.bracket.places5_8.SF[sfIdx];
+          if (p58Match) { if (!p58Match.t1) p58Match.t1 = loser; else if (!p58Match.t2) p58Match.t2 = loser; }
+
+        } else if (section === "principal" && round === "SF") {
+          const fMatch = state.bracket.principal.F[0];
+          if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+          const thirdMatch = state.bracket.principal.Third[0];
+          if (thirdMatch) { if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser; }
+
+        } else if (section === "places5_8" && round === "SF") {
+          const fMatch = state.bracket.places5_8.F[0];
+          if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+          const seventhMatch = state.bracket.places5_8.Seventh[0];
+          if (seventhMatch) { if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser; }
+
+        } else if (section === "consolante") {
+          if (round === "SF13_16") {
+            const thMatch = state.bracket.consolante.Thirteenth[0];
+            if (thMatch) { if (matchIndex === 0) thMatch.t1 = winner; else thMatch.t2 = winner; }
+            const fiMatch = state.bracket.consolante.Fifteenth[0];
+            if (fiMatch) { if (matchIndex === 0) fiMatch.t1 = loser; else fiMatch.t2 = loser; }
+          } else if (round === "SF") {
+            const fMatch = state.bracket.consolante.F[0];
+            if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+            const elMatch = state.bracket.consolante.Eleventh[0];
+            if (elMatch) { if (matchIndex === 0) elMatch.t1 = loser; else elMatch.t2 = loser; }
+          }
         }
       } else {
-        if (state.bracket.size === 16) {
-          if (section === "principal" && round === "R1") {
-            const qfMatch = state.bracket.principal.QF[matchIndex];
-            qfMatch.t2 = winner;
+        // Format 12 équipes
+        if (section === "prelim") {
+          assignNextAvailableSlot(state.bracket.principal.QF, winner);
+          assignNextAvailableSlot(state.bracket.consolante.SF, loser);
 
-            const consMatchIndex = Math.floor(matchIndex / 2);
-            const consMatch = state.bracket.consolante.SF[consMatchIndex];
-            if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+        } else if (section === "principal" && round === "QF") {
+          let sfIdx = Math.floor(matchIndex / 2);
+          const sfMatch = state.bracket.principal.SF[sfIdx];
+          if (sfMatch) { if (!sfMatch.t1) sfMatch.t1 = winner; else if (!sfMatch.t2) sfMatch.t2 = winner; }
+          const p58Match = state.bracket.places5_8.SF[sfIdx];
+          if (p58Match) { if (!p58Match.t1) p58Match.t1 = loser; else if (!p58Match.t2) p58Match.t2 = loser; }
 
-          } else if (section === "principal" && round === "QF") {
-            const p58Index = Math.floor(matchIndex / 2);
-            const p58Match = state.bracket.places5_8.SF[p58Index];
-            if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
+        } else if (section === "principal" && round === "SF") {
+          const fMatch = state.bracket.principal.F[0];
+          if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+          const thirdMatch = state.bracket.principal.Third[0];
+          if (thirdMatch) { if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser; }
 
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
+        } else if (section === "places5_8" && round === "SF") {
+          const fMatch = state.bracket.places5_8.F[0];
+          if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+          const seventhMatch = state.bracket.places5_8.Seventh[0];
+          if (seventhMatch) { if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser; }
 
-          } else if (section === "principal" && round === "SF") {
-            const nextMatch = state.bracket.principal.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const thirdMatch = state.bracket.principal.Third[0];
-            if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-
-          } else if (section === "places5_8" && round === "SF") {
-            const nextMatch = state.bracket.places5_8.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const seventhMatch = state.bracket.places5_8.Seventh[0];
-            if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
-
-          } else if (section === "consolante") {
-            if (round === "SF13_16") {
-              const nextMatch = state.bracket.consolante.Thirteenth[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const fifteenMatch = state.bracket.consolante.Fifteenth[0];
-              if (matchIndex === 0) fifteenMatch.t1 = loser; else fifteenMatch.t2 = loser;
-            } else if (round === "SF") {
-              const nextMatch = state.bracket.consolante.F[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const eleventhMatch = state.bracket.consolante.Eleventh[0];
-              if (matchIndex === 0) eleventhMatch.t1 = loser; else eleventhMatch.t2 = loser;
-            }
-          }
-        } else {
-          // Logique 12 équipes
-          if (section === "principal" && round === "QF") {
-            const p58Index = Math.floor(matchIndex / 2);
-            const p58Match = state.bracket.places5_8.SF[p58Index];
-            if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
-
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-          } else if (section === "principal" && round === "SF") {
-            const nextMatch = state.bracket.principal.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const thirdMatch = state.bracket.principal.Third[0];
-            if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-
-          } else if (section === "places5_8" && round === "SF") {
-            const nextMatch = state.bracket.places5_8.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const seventhMatch = state.bracket.places5_8.Seventh[0];
-            if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
-
-          } else if (section === "consolante") {
-            if (round === "SF") {
-              const nextMatch = state.bracket.consolante.F[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const thirdMatch = state.bracket.consolante.Third[0];
-              if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-            }
-          }
+        } else if (section === "consolante" && round === "SF") {
+          const fMatch = state.bracket.consolante.F[0];
+          if (fMatch) { if (matchIndex === 0) fMatch.t1 = winner; else fMatch.t2 = winner; }
+          const thirdMatch = state.bracket.consolante.Third[0];
+          if (thirdMatch) { if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser; }
         }
       }
 
@@ -598,11 +528,8 @@
     }
 
     function shareTournoi() {
-      if (navigator.share) {
-        navigator.share({ title: state.title, url: window.location.href }).catch(() => {});
-      } else {
-        prompt("Copiez le lien du tournoi :", window.location.href);
-      }
+      if (navigator.share) { navigator.share({ title: state.title, url: window.location.href }).catch(() => {}); }
+      else { prompt("Copiez le lien du tournoi :", window.location.href); }
     }
 
     function render() {
@@ -622,10 +549,7 @@
         <div class="topbar">
           <div class="topbar-group">
             <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Organisateur' : '🔑 Lecteur'}</button>
-            ${organizer ? `
-              <button class="save-btn" onclick="saveTournamentFile()">💾 Sauvegarder</button>
-              <button class="load-btn" onclick="triggerLoadTournamentFile()">📂 Charger</button>
-            ` : ''}
+            ${organizer ? `<button class="save-btn" onclick="saveTournamentFile()">💾 Sauvegarder</button><button class="load-btn" onclick="triggerLoadTournamentFile()">📂 Charger</button>` : ''}
             <button class="share-btn" onclick="shareTournoi()">🔗 Partager</button>
           </div>
           <div class="topbar-group">
@@ -764,9 +688,7 @@
                         </td>
                         <td>${isFinished && m.winner.id === m.t1?.id ? `<strong>🏆 ${t1Str}</strong>` : t1Str}</td>
                         <td>${isFinished && m.winner.id === m.t2?.id ? `<strong>🏆 ${t2Str}</strong>` : t2Str}</td>
-                        <td>
-                          <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
-                        </td>
+                        <td><input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" /></td>
                       </tr>
                     `;
                   }).join('')}
