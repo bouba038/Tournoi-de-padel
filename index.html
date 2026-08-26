@@ -370,19 +370,22 @@
       render();
     }
 
-    // CORRECTION : Attribution aléatoire des gagnants de préliminaires dans les tableaux cibles
-    function distributePrelimWinnersRandomly() {
-      if (!state.bracket) return;
-      const size = state.bracket.size;
+    // Place une valeur dans une place ALEATOIRE encore libre (t2) parmi un tableau de matchs
+    function assignToRandomSlot(matches, value) {
+      if (!matches || !value) return;
+      let emptyIndexes = [];
+      matches.forEach((m, i) => { if (m.t2 === null || m.t2 === undefined) emptyIndexes.push(i); });
+      if (emptyIndexes.length === 0) return;
+      const pick = emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
+      matches[pick].t2 = value;
+    }
 
-      if (size === 16) {
-        let prelimWinners = shuffleArray(state.bracket.prelim.map(m => m.winner));
-        // 4 gagnants vont dans R1 (face aux top 5-8)
-        state.bracket.principal.R1.forEach((m, idx) => { m.t2 = prelimWinners[idx]; });
-      } else if (size === 12) {
-        let prelimWinners = shuffleArray(state.bracket.prelim.map(m => m.winner));
-        // 4 gagnants vont dans QF (face aux têtes de série 1-4)
-        state.bracket.principal.QF.forEach((m, idx) => { m.t2 = prelimWinners[idx]; });
+    // Place une valeur dans la PROCHAINE place libre (ordre du tableau) parmi un tableau de matchs
+    function assignToNextEmptySlot(matches, value) {
+      if (!matches || !value) return;
+      for (let m of matches) {
+        if (m.t1 === null || m.t1 === undefined) { m.t1 = value; return; }
+        if (m.t2 === null || m.t2 === undefined) { m.t2 = value; return; }
       }
     }
 
@@ -406,32 +409,23 @@
       const loser = teamNum === 1 ? match.t2 : match.t1;
       match.winner = winner;
 
-      // Si c'est le tour préliminaire, on vérifie si tous les matchs sont terminés pour distribuer aléatoirement
+      // Si c'est le tour préliminaire : dès validation, le gagnant part sur une place
+      // aléatoire du tableau principal (5-8 pour le 16, QF direct pour le 12),
+      // et le perdant part immédiatement dans la prochaine place libre de la consolante.
       if (section === "prelim") {
-        const allPrelimDone = state.bracket.prelim.every(m => m.winner !== null);
-        if (allPrelimDone) {
-          distributePrelimWinnersRandomly();
-        }
-
-        // Gestion des perdants du préliminaire (envoi en consolante 13-16 ou 9-12)
         if (state.bracket.size === 16) {
-          const sf13Index = Math.floor(matchIndex / 2);
-          const sf13Match = state.bracket.consolante.SF13_16[sf13Index];
-          if (matchIndex % 2 === 0) sf13Match.t1 = loser; else sf13Match.t2 = loser;
+          assignToRandomSlot(state.bracket.principal.R1, winner);
+          assignToNextEmptySlot(state.bracket.consolante.SF13_16, loser);
         } else {
-          const consMatchIndex = Math.floor(matchIndex / 2);
-          const consMatch = state.bracket.consolante.SF[consMatchIndex];
-          if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+          assignToRandomSlot(state.bracket.principal.QF, winner);
+          assignToNextEmptySlot(state.bracket.consolante.SF, loser);
         }
       } else {
         if (state.bracket.size === 16) {
           if (section === "principal" && round === "R1") {
-            const qfMatch = state.bracket.principal.QF[matchIndex];
-            qfMatch.t2 = winner;
-
-            const consMatchIndex = Math.floor(matchIndex / 2);
-            const consMatch = state.bracket.consolante.SF[consMatchIndex];
-            if (matchIndex % 2 === 0) consMatch.t1 = loser; else consMatch.t2 = loser;
+            // Dès validation, le gagnant part sur une place aléatoire libre des quarts de finale
+            assignToRandomSlot(state.bracket.principal.QF, winner);
+            assignToNextEmptySlot(state.bracket.consolante.SF, loser);
 
           } else if (section === "principal" && round === "QF") {
             const p58Index = Math.floor(matchIndex / 2);
