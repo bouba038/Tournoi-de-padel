@@ -193,10 +193,11 @@
       let teams = state.teamEntries.map((t, i) => ({
         id: i,
         name: (t.player1 || t.player2) ? `${t.player1} / ${t.player2}` : `Équipe ${i+1}`,
-        poids: t.poids !== "" ? Number(t.poids) : 0
+        poids: t.poids !== "" ? Number(t.poids) : 999999 // Les vides se retrouvent en fin de classement
       }));
 
-      teams.sort((a, b) => b.poids - a.poids);
+      // CORRECTION : Tri croissant (le poids le plus faible devient tête de série n°1)
+      teams.sort((a, b) => a.poids - b.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
       let defaultTimes = {};
@@ -365,7 +366,6 @@
 
           const nextMatchIndex = Math.floor(matchIndex / 2);
           const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-          if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t1 = winner; // Corrigé SF t1/t2
           if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
 
         } else if (section === "principal" && round === "SF") {
