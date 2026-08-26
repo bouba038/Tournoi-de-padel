@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionnaire de Tournoi Padel</title>
+    <title>Gestionnaire de Tournoi de Padel</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -25,17 +25,18 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
         th { background: #f1f5f9; }
+        .actions { display: flex; gap: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🏆 Tournoi Padel</h1>
+            <h1>🏆 Tournoi de Padel</h1>
             <button onclick="resetApp()">Réinitialiser</button>
         </header>
 
         <div class="card">
-            <h2>Configuration</h2>
+            <h2>Configuration du Tournoi</h2>
             <label>Format :</label>
             <select id="size" onchange="changeSize()">
                 <option value="16">16 Équipes</option>
@@ -44,9 +45,12 @@
         </div>
 
         <div class="card">
-            <h2>Équipes</h2>
+            <h2>Gestion des Équipes</h2>
             <div id="teams-list"></div>
-            <button onclick="saveTeams()">Enregistrer les équipes</button>
+            <div class="actions">
+                <button onclick="saveTeams()">Enregistrer</button>
+                <button onclick="exportData()" style="background: #059669;">Sauvegarder / Exporter</button>
+            </div>
         </div>
     </div>
 
@@ -54,7 +58,7 @@
         let data = { size: 16, teams: [] };
 
         function init() {
-            let saved = localStorage.getItem("padel_app_data");
+            let saved = localStorage.getItem("padel_save_data");
             if (saved) {
                 try { data = JSON.parse(saved); } catch(e) { resetApp(); }
             } else {
@@ -70,7 +74,7 @@
                 size: count,
                 teams: Array.from({length: count}, (_, i) => `Équipe ${i+1}`)
             };
-            localStorage.setItem("padel_app_data", JSON.stringify(data));
+            localStorage.setItem("padel_save_data", JSON.stringify(data));
             init();
         }
 
@@ -88,8 +92,19 @@
 
         function saveTeams() {
             data.teams = data.teams.map((_, i) => document.getElementById(`t-${i}`).value || `Équipe ${i+1}`);
-            localStorage.setItem("padel_app_data", JSON.stringify(data));
-            alert("Sauvegardé !");
+            localStorage.setItem("padel_save_data", JSON.stringify(data));
+            alert("Données sauvegardées avec succès !");
+        }
+
+        function exportData() {
+            saveTeams();
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+            let downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "tournoi_padel_sauvegarde.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
         }
 
         window.onload = init;
