@@ -681,6 +681,22 @@
     }
 
     function render() {
+      try {
+        renderInner();
+      } catch (err) {
+        const app = document.getElementById("app");
+        app.innerHTML = `
+          <div style="background:#fee2e2; border:2px solid #fca5a5; color:#991b1b; padding:16px; border-radius:10px; font-family:monospace; white-space:pre-wrap; font-size:0.8rem;">
+            <strong>⚠️ Erreur d'affichage détectée</strong><br><br>
+            Onglet : ${state && state.activeTab}<br>
+            Message : ${err && err.message}<br><br>
+            <em>Merci de faire une capture d'écran de ce message et de l'envoyer.</em>
+          </div>
+        `;
+      }
+    }
+
+    function renderInner() {
       const app = document.getElementById("app");
       if (!state) return;
       const organizer = isOrganizer();
@@ -690,7 +706,7 @@
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v20</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v21</div>
           </div>
         </div>
 
