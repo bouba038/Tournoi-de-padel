@@ -702,16 +702,6 @@
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--purple)"></div><h2>Tableau Consolante (Places 9 à ${state.bracket.size === 16 ? '16' : '12'})</h2></div>
               <div class="rounds">
-                <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
-                <div class="round-col">
-                  <div class="round-label">Finales Cons.</div>
-                  <div class="matches-col">
-                    <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">9e - 10e place</div>
-                    ${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}
-                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">${state.bracket.size === 16 ? '11e - 12e place' : '11e - 12e / 3e place'}</div>
-                    ${(state.bracket.size === 16 ? state.bracket.consolante.Eleventh : state.bracket.consolante.Third||[]).map(m=>renderMatchCard(m,"consolante", state.bracket.size === 16 ? "Eleventh" : "Third")).join('')}
-                  </div>
-                </div>
                 ${state.bracket.size === 16 ? `
                   <div class="round-col">
                     <div class="round-label">Demis Cons. (13-16)</div>
@@ -727,6 +717,16 @@
                     </div>
                   </div>
                 ` : ''}
+                <div class="round-col"><div class="round-label">Demis Cons.</div><div class="matches-col">${(state.bracket.consolante.SF||[]).map(m=>renderMatchCard(m,"consolante","SF")).join('')}</div></div>
+                <div class="round-col">
+                  <div class="round-label">Finales Cons.</div>
+                  <div class="matches-col">
+                    <div style="font-size:0.7rem; font-weight:bold; color:#6d28d9; text-align:center; background:var(--accent-purple); padding:2px; border-radius:4px;">9e - 10e place</div>
+                    ${(state.bracket.consolante.F||[]).map(m=>renderMatchCard(m,"consolante","F")).join('')}
+                    <div style="font-size:0.7rem; font-weight:bold; color:var(--text-light); text-align:center; margin-top:4px; background:#f1f5f9; padding:2px; border-radius:4px;">${state.bracket.size === 16 ? '11e - 12e place' : '11e - 12e / 3e place'}</div>
+                    ${(state.bracket.size === 16 ? state.bracket.consolante.Eleventh : state.bracket.consolante.Third||[]).map(m=>renderMatchCard(m,"consolante", state.bracket.size === 16 ? "Eleventh" : "Third")).join('')}
+                  </div>
+                </div>
               </div>
             </div>
           ` : `
