@@ -389,6 +389,71 @@
       }
     }
 
+    // Retrouve dans quel match/emplacement (t1 ou t2) une équipe a été placée
+    function locateTeam(matches, teamId) {
+      if (!matches) return null;
+      for (const m of matches) {
+        if (m.t1 && m.t1.id === teamId) return { match: m, key: 't1' };
+        if (m.t2 && m.t2.id === teamId) return { match: m, key: 't2' };
+      }
+      return null;
+    }
+
+    // Retire une équipe d'un tableau où elle avait déjà été envoyée (en cas de correction
+    // d'un résultat). Renvoie false si le tour suivant a déjà été joué avec elle : dans ce
+    // cas on ne touche à rien et on bloque la correction.
+    function clearFromDownstream(matches, teamId) {
+      if (!matches || teamId === undefined || teamId === null) return true;
+      const loc = locateTeam(matches, teamId);
+      if (!loc) return true;
+      if (loc.match.winner !== null) return false;
+      loc.match[loc.key] = null;
+      return true;
+    }
+
+    // Pour les enchaînements à emplacement FIXE (basés sur la position du match dans son
+    // tableau) : renvoie les matchs/emplacements cibles du gagnant et du perdant, ou null
+    // s'il s'agit d'un match terminal (finale, petite finale, etc.) qui ne propage rien.
+    function resolveDeterministicTargets(section, round, idx, br) {
+      if (section === "principal" && round === "QF") {
+        const pairIndex = Math.floor(idx / 2);
+        const key = idx % 2 === 0 ? 't1' : 't2';
+        return {
+          winMatch: br.principal.SF[pairIndex], winKey: key,
+          loseMatch: br.places5_8.SF[pairIndex], loseKey: key
+        };
+      }
+      if (section === "principal" && round === "SF") {
+        const key = idx === 0 ? 't1' : 't2';
+        return {
+          winMatch: br.principal.F[0], winKey: key,
+          loseMatch: br.principal.Third[0], loseKey: key
+        };
+      }
+      if (section === "places5_8" && round === "SF") {
+        const key = idx === 0 ? 't1' : 't2';
+        return {
+          winMatch: br.places5_8.F[0], winKey: key,
+          loseMatch: br.places5_8.Seventh[0], loseKey: key
+        };
+      }
+      if (section === "consolante" && round === "SF13_16") {
+        const key = idx === 0 ? 't1' : 't2';
+        return {
+          winMatch: br.consolante.Thirteenth[0], winKey: key,
+          loseMatch: br.consolante.Fifteenth[0], loseKey: key
+        };
+      }
+      if (section === "consolante" && round === "SF") {
+        const key = idx === 0 ? 't1' : 't2';
+        return {
+          winMatch: br.consolante.F[0], winKey: key,
+          loseMatch: br.size === 16 ? br.consolante.Eleventh[0] : br.consolante.Third[0], loseKey: key
+        };
+      }
+      return null;
+    }
+
     function selectWinner(section, round, matchId, teamNum) {
       if (!state.isOrgSession) {
         alert("Mode lecteur : vous ne pouvez pas modifier les vainqueurs.");
@@ -401,104 +466,67 @@
 
       const matchIndex = matchArray.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
-      
+
       const match = matchArray[matchIndex];
       if (!match.t1 || !match.t2) return;
 
-      const winner = teamNum === 1 ? match.t1 : match.t2;
-      const loser = teamNum === 1 ? match.t2 : match.t1;
-      match.winner = winner;
+      const newWinner = teamNum === 1 ? match.t1 : match.t2;
+      const newLoser = teamNum === 1 ? match.t2 : match.t1;
+      const wasDecided = match.winner !== null;
+      const oldWinner = match.winner;
 
-      // Si c'est le tour préliminaire : dès validation, le gagnant part sur une place
-      // aléatoire du tableau principal (5-8 pour le 16, QF direct pour le 12),
-      // et le perdant part immédiatement dans la prochaine place libre de la consolante.
+      // Re-clic sur l'équipe déjà déclarée gagnante : rien à changer
+      if (wasDecided && oldWinner.id === newWinner.id) return;
+
+      const oldLoser = wasDecided ? (oldWinner.id === match.t1.id ? match.t2 : match.t1) : null;
+
+      const blockCorrection = () => {
+        alert("Impossible de corriger ce résultat : le tour suivant a déjà été joué avec cette équipe. Réinitialisez d'abord ce résultat suivant, puis recommencez.");
+      };
+
+      // --- Tour préliminaire : diffusion immédiate et aléatoire ---
       if (section === "prelim") {
-        if (state.bracket.size === 16) {
-          assignToRandomSlot(state.bracket.principal.R1, winner);
-          assignToNextEmptySlot(state.bracket.consolante.SF13_16, loser);
-        } else {
-          assignToRandomSlot(state.bracket.principal.QF, winner);
-          assignToNextEmptySlot(state.bracket.consolante.SF, loser);
+        const winTarget = state.bracket.size === 16 ? state.bracket.principal.R1 : state.bracket.principal.QF;
+        const loseTarget = state.bracket.size === 16 ? state.bracket.consolante.SF13_16 : state.bracket.consolante.SF;
+
+        if (wasDecided) {
+          const okWin = clearFromDownstream(winTarget, oldWinner.id);
+          const okLose = clearFromDownstream(loseTarget, oldLoser.id);
+          if (!okWin || !okLose) { blockCorrection(); return; }
         }
+        match.winner = newWinner;
+        assignToRandomSlot(winTarget, newWinner);
+        assignToNextEmptySlot(loseTarget, newLoser);
+
+      // --- 8èmes de finale (qualificatifs, format 16 uniquement) : idem ---
+      } else if (state.bracket.size === 16 && section === "principal" && round === "R1") {
+        const winTarget = state.bracket.principal.QF;
+        const loseTarget = state.bracket.consolante.SF;
+
+        if (wasDecided) {
+          const okWin = clearFromDownstream(winTarget, oldWinner.id);
+          const okLose = clearFromDownstream(loseTarget, oldLoser.id);
+          if (!okWin || !okLose) { blockCorrection(); return; }
+        }
+        match.winner = newWinner;
+        assignToRandomSlot(winTarget, newWinner);
+        assignToNextEmptySlot(loseTarget, newLoser);
+
+      // --- Tous les autres tours : emplacement fixe (auto-correction sûre) ---
       } else {
-        if (state.bracket.size === 16) {
-          if (section === "principal" && round === "R1") {
-            // Dès validation, le gagnant part sur une place aléatoire libre des quarts de finale
-            assignToRandomSlot(state.bracket.principal.QF, winner);
-            assignToNextEmptySlot(state.bracket.consolante.SF, loser);
-
-          } else if (section === "principal" && round === "QF") {
-            const p58Index = Math.floor(matchIndex / 2);
-            const p58Match = state.bracket.places5_8.SF[p58Index];
-            if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
-
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-          } else if (section === "principal" && round === "SF") {
-            const nextMatch = state.bracket.principal.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const thirdMatch = state.bracket.principal.Third[0];
-            if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-
-          } else if (section === "places5_8" && round === "SF") {
-            const nextMatch = state.bracket.places5_8.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const seventhMatch = state.bracket.places5_8.Seventh[0];
-            if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
-
-          } else if (section === "consolante") {
-            if (round === "SF13_16") {
-              const nextMatch = state.bracket.consolante.Thirteenth[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const fifteenMatch = state.bracket.consolante.Fifteenth[0];
-              if (matchIndex === 0) fifteenMatch.t1 = loser; else fifteenMatch.t2 = loser;
-            } else if (round === "SF") {
-              const nextMatch = state.bracket.consolante.F[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const eleventhMatch = state.bracket.consolante.Eleventh[0];
-              if (matchIndex === 0) eleventhMatch.t1 = loser; else eleventhMatch.t2 = loser;
-            }
+        const target = resolveDeterministicTargets(section, round, matchIndex, state.bracket);
+        if (target) {
+          if (wasDecided) {
+            const winLocked = target.winMatch && target.winMatch.winner !== null;
+            const loseLocked = target.loseMatch && target.loseMatch.winner !== null;
+            if (winLocked || loseLocked) { blockCorrection(); return; }
           }
+          match.winner = newWinner;
+          if (target.winMatch) target.winMatch[target.winKey] = newWinner;
+          if (target.loseMatch) target.loseMatch[target.loseKey] = newLoser;
         } else {
-          // Logique 12 équipes
-          if (section === "principal" && round === "QF") {
-            const p58Index = Math.floor(matchIndex / 2);
-            const p58Match = state.bracket.places5_8.SF[p58Index];
-            if (matchIndex % 2 === 0) p58Match.t1 = loser; else p58Match.t2 = loser;
-
-            const nextMatchIndex = Math.floor(matchIndex / 2);
-            const nextMatch = state.bracket.principal.SF[nextMatchIndex];
-            if (matchIndex % 2 === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-          } else if (section === "principal" && round === "SF") {
-            const nextMatch = state.bracket.principal.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const thirdMatch = state.bracket.principal.Third[0];
-            if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-
-          } else if (section === "places5_8" && round === "SF") {
-            const nextMatch = state.bracket.places5_8.F[0];
-            if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-            const seventhMatch = state.bracket.places5_8.Seventh[0];
-            if (matchIndex === 0) seventhMatch.t1 = loser; else seventhMatch.t2 = loser;
-
-          } else if (section === "consolante") {
-            if (round === "SF") {
-              const nextMatch = state.bracket.consolante.F[0];
-              if (matchIndex === 0) nextMatch.t1 = winner; else nextMatch.t2 = winner;
-
-              const thirdMatch = state.bracket.consolante.Third[0];
-              if (matchIndex === 0) thirdMatch.t1 = loser; else thirdMatch.t2 = loser;
-            }
-          }
+          // Match terminal (finale, petite finale, 7e-8e, 11e-12e, 13e-14e, 15e-16e...) : rien à propager
+          match.winner = newWinner;
         }
       }
 
