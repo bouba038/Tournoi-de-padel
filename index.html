@@ -197,7 +197,7 @@
       }
     }
 
-    function switchTab(tab) { state.activeTab = tab; render(); }
+    function switchTab(tab) { state.activeTab = tab; render(); window.scrollTo(0, 0); }
     
     function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
