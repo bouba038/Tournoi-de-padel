@@ -100,7 +100,24 @@
   <div id="app">Chargement...</div>
   <input type="file" id="importFile" style="display:none" accept=".json,application/json,text/plain,*/*" onchange="processImportFile(event)">
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
+      authDomain: "tournoi-padel-86551.firebaseapp.com",
+      databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tournoi-padel-86551",
+      storageBucket: "tournoi-padel-86551.appspot.com",
+      messagingSenderId: "499802248061",
+      appId: "1:499802248061:web:c2295602e9bcc8b03af214",
+      measurementId: "G-4Z8HPS0M12"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     let state = {
       title: "Tournoi du club",
       format: "16",
@@ -123,13 +140,18 @@
 
     function saveToLocalStorage() {
       localStorage.setItem("padel_tournament_state", JSON.stringify(state));
+      if (state.isOrgSession) {
+        set(ref(db, 'tournoi/actuel'), state).catch((error) => {
+          console.error("Erreur synchro Firebase : ", error);
+        });
+      }
     }
 
     loadFromLocalStorage();
 
     function isOrganizer() { return state.isOrgSession; }
     
-    function toggleOrganizerMode() {
+    window.toggleOrganizerMode = function() {
       if (state.isOrgSession) {
         state.isOrgSession = false;
         render();
@@ -142,26 +164,26 @@
           alert("Code incorrect !");
         }
       }
-    }
+    };
 
-    function switchTab(tab) { state.activeTab = tab; render(); }
+    window.switchTab = function(tab) { state.activeTab = tab; render(); };
     
-    function updateTeamEntry(idx, field, val) { 
+    window.updateTeamEntry = function(idx, field, val) { 
       if (!state.isOrgSession) return;
       state.teamEntries[idx][field] = val;
       saveToLocalStorage();
-    }
+    };
 
-    function setFormat(fmt) {
+    window.setFormat = function(fmt) {
       if (!state.isOrgSession) return;
       state.format = fmt;
       const count = fmt === '16' ? 16 : 12;
       state.teamEntries = Array.from({length: count}, (_, i) => state.teamEntries[i] || { player1: "", player2: "", poids: "" });
       saveToLocalStorage();
       render();
-    }
+    };
 
-    function resetSetup() {
+    window.resetSetup = function() {
       if (!state.isOrgSession) return;
       if (confirm("Réinitialiser les équipes ?")) {
         state.phase = "setup";
@@ -170,14 +192,15 @@
         state.bracket = null;
         state.scheduleTimes = {};
         localStorage.removeItem("padel_tournament_state");
+        set(ref(db, 'tournoi/actuel'), state).catch(()=>{});
         render();
       }
-    }
+    };
 
-    function goToSetup() {
+    window.goToSetup = function() {
       state.phase = "setup";
       render();
-    }
+    };
 
     function shuffleArray(array) {
       let arr = [...array];
@@ -188,7 +211,7 @@
       return arr;
     }
 
-    function saveTournamentFile() {
+    window.saveTournamentFile = function() {
       if (!state.isOrgSession) {
         alert("Action réservée à l'organisateur.");
         return;
@@ -200,17 +223,17 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-    }
+    };
 
-    function triggerLoadTournamentFile() {
+    window.triggerLoadTournamentFile = function() {
       if (!state.isOrgSession) {
         alert("Action réservée à l'organisateur.");
         return;
       }
       document.getElementById('importFile').click();
-    }
+    };
 
-    function processImportFile(event) {
+    window.processImportFile = function(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -231,9 +254,9 @@
       };
       reader.readAsText(file);
       event.target.value = "";
-    }
+    };
 
-    function launchTournament() {
+    window.launchTournament = function() {
       state.phase = "running";
       state.activeTab = "bracket";
       const formatNum = parseInt(state.format);
@@ -244,7 +267,6 @@
         poids: t.poids !== "" ? Number(t.poids) : 999999
       }));
 
-      // Tri croissant (le poids le plus faible devient tête de série n°1)
       teams.sort((a, b) => a.poids - b.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
@@ -310,7 +332,6 @@
         });
 
       } else {
-        // Format 12 équipes
         let top1_2 = shuffleArray([teams[0], teams[1]]);
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
@@ -368,9 +389,8 @@
       state.scheduleTimes = defaultTimes;
       saveToLocalStorage();
       render();
-    }
+    };
 
-    // Place une valeur dans une place ALEATOIRE encore libre (t2) parmi un tableau de matchs
     function assignToRandomSlot(matches, value) {
       if (!matches || !value) return;
       let emptyIndexes = [];
@@ -380,7 +400,6 @@
       matches[pick].t2 = value;
     }
 
-    // Place une valeur dans la PROCHAINE place libre (ordre du tableau) parmi un tableau de matchs
     function assignToNextEmptySlot(matches, value) {
       if (!matches || !value) return;
       for (let m of matches) {
@@ -389,7 +408,6 @@
       }
     }
 
-    // Retrouve dans quel match/emplacement (t1 ou t2) une équipe a été placée
     function locateTeam(matches, teamId) {
       if (!matches) return null;
       for (const m of matches) {
@@ -399,9 +417,6 @@
       return null;
     }
 
-    // Retire une équipe d'un tableau où elle avait déjà été envoyée (en cas de correction
-    // d'un résultat). Renvoie false si le tour suivant a déjà été joué avec elle : dans ce
-    // cas on ne touche à rien et on bloque la correction.
     function clearFromDownstream(matches, teamId) {
       if (!matches || teamId === undefined || teamId === null) return true;
       const loc = locateTeam(matches, teamId);
@@ -411,9 +426,6 @@
       return true;
     }
 
-    // Pour les enchaînements à emplacement FIXE (basés sur la position du match dans son
-    // tableau) : renvoie les matchs/emplacements cibles du gagnant et du perdant, ou null
-    // s'il s'agit d'un match terminal (finale, petite finale, etc.) qui ne propage rien.
     function resolveDeterministicTargets(section, round, idx, br) {
       if (section === "principal" && round === "QF") {
         const pairIndex = Math.floor(idx / 2);
@@ -454,7 +466,7 @@
       return null;
     }
 
-    function selectWinner(section, round, matchId, teamNum) {
+    window.selectWinner = function(section, round, matchId, teamNum) {
       if (!state.isOrgSession) {
         alert("Mode lecteur : vous ne pouvez pas modifier les vainqueurs.");
         return;
@@ -475,7 +487,6 @@
       const wasDecided = match.winner !== null;
       const oldWinner = match.winner;
 
-      // Re-clic sur l'équipe déjà déclarée gagnante : rien à changer
       if (wasDecided && oldWinner.id === newWinner.id) return;
 
       const oldLoser = wasDecided ? (oldWinner.id === match.t1.id ? match.t2 : match.t1) : null;
@@ -484,7 +495,6 @@
         alert("Impossible de corriger ce résultat : le tour suivant a déjà été joué avec cette équipe. Réinitialisez d'abord ce résultat suivant, puis recommencez.");
       };
 
-      // --- Tour préliminaire : diffusion immédiate et aléatoire ---
       if (section === "prelim") {
         const winTarget = state.bracket.size === 16 ? state.bracket.principal.R1 : state.bracket.principal.QF;
         const loseTarget = state.bracket.size === 16 ? state.bracket.consolante.SF13_16 : state.bracket.consolante.SF;
@@ -498,7 +508,6 @@
         assignToRandomSlot(winTarget, newWinner);
         assignToNextEmptySlot(loseTarget, newLoser);
 
-      // --- 8èmes de finale (qualificatifs, format 16 uniquement) : idem ---
       } else if (state.bracket.size === 16 && section === "principal" && round === "R1") {
         const winTarget = state.bracket.principal.QF;
         const loseTarget = state.bracket.consolante.SF;
@@ -512,7 +521,6 @@
         assignToRandomSlot(winTarget, newWinner);
         assignToNextEmptySlot(loseTarget, newLoser);
 
-      // --- Tous les autres tours : emplacement fixe (auto-correction sûre) ---
       } else {
         const target = resolveDeterministicTargets(section, round, matchIndex, state.bracket);
         if (target) {
@@ -525,14 +533,13 @@
           if (target.winMatch) target.winMatch[target.winKey] = newWinner;
           if (target.loseMatch) target.loseMatch[target.loseKey] = newLoser;
         } else {
-          // Match terminal (finale, petite finale, 7e-8e, 11e-12e, 13e-14e, 15e-16e...) : rien à propager
           match.winner = newWinner;
         }
       }
 
       saveToLocalStorage();
       render();
-    }
+    };
 
     function renderMatchCard(m, section, round) {
       const t1Name = m.t1 ? `${m.t1.seed ? `<span class="seed">#${m.t1.seed}</span>` : ''}${m.t1.name}` : "En attente...";
@@ -619,13 +626,13 @@
       return list;
     }
 
-    function shareTournoi() {
+    window.shareTournoi = function() {
       if (navigator.share) {
         navigator.share({ title: state.title, url: window.location.href }).catch(() => {});
       } else {
         prompt("Copiez le lien du tournoi :", window.location.href);
       }
-    }
+    };
 
     function render() {
       const app = document.getElementById("app");
@@ -799,6 +806,18 @@
         `}
       `;
     }
+
+    // Écoute en direct Firebase
+    const tournamentRef = ref(db, 'tournoi/actuel');
+    onValue(tournamentRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        if (!state.isOrgSession) {
+          state = data;
+          render();
+        }
+      }
+    });
 
     render();
   </script>
