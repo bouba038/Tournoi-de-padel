@@ -794,7 +794,7 @@
                         <td>${isFinished && m.winner.id === m.t1?.id ? `<strong>🏆 ${t1Str}</strong>` : t1Str}</td>
                         <td>${isFinished && m.winner.id === m.t2?.id ? `<strong>🏆 ${t2Str}</strong>` : t2Str}</td>
                         <td>
-                          <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} onchange="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
+                          <input type="text" value="${timeVal}" ${!organizer ? 'readonly' : ''} oninput="state.scheduleTimes['${m.id}'] = this.value; saveToLocalStorage();" />
                         </td>
                       </tr>
                     `;
