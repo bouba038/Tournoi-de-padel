@@ -134,11 +134,13 @@
     // (chaque appareil décide lui-même, via son code PIN, s'il est organisateur ou lecteur)
     function applyRemoteState(remoteData) {
       const myOrgSession = state.isOrgSession;
+      const myActiveTab = state.activeTab;
       const clean = Object.assign({}, remoteData);
       delete clean._writer;
       delete clean._updatedAt;
       state = clean;
       state.isOrgSession = myOrgSession;
+      state.activeTab = myActiveTab;
       localStorage.setItem("padel_tournament_state", JSON.stringify(state));
       render();
     }
