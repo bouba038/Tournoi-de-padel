@@ -94,30 +94,15 @@
 
     .locked-notice { background: #fef3c7; color: #92400e; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; text-align: center; border: 1px solid #fde68a; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
 
   <div id="app">Chargement...</div>
   <input type="file" id="importFile" style="display:none" accept=".json,application/json,text/plain,*/*" onchange="processImportFile(event)">
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
-      authDomain: "tournoi-padel-86551.firebaseapp.com",
-      databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "tournoi-padel-86551",
-      storageBucket: "tournoi-padel-86551.appspot.com",
-      messagingSenderId: "499802248061",
-      appId: "1:499802248061:web:c2295602e9bcc8b03af214",
-      measurementId: "G-4Z8HPS0M12"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
+  <script>
     let state = {
       title: "Tournoi du club",
       format: "16",
@@ -128,6 +113,54 @@
       bracket: null,
       scheduleTimes: {}
     };
+
+    // ---- Synchronisation en direct (Firebase Realtime Database) ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
+      authDomain: "tournoi-padel-86551.firebaseapp.com",
+      databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tournoi-padel-86551",
+      storageBucket: "tournoi-padel-86551.firebasestorage.app",
+      messagingSenderId: "499802248061",
+      appId: "1:499802248061:web:c2295602e9bcc8b03af214"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const firebaseRef = firebase.database().ref("tournamentState");
+    const sessionId = Math.random().toString(36).slice(2);
+    let firebaseConnected = false;
+    let firebasePushTimer = null;
+
+    // Applique un état reçu de Firebase SANS écraser le statut organisateur local
+    // (chaque appareil décide lui-même, via son code PIN, s'il est organisateur ou lecteur)
+    function applyRemoteState(remoteData) {
+      const myOrgSession = state.isOrgSession;
+      const clean = Object.assign({}, remoteData);
+      delete clean._writer;
+      delete clean._updatedAt;
+      state = clean;
+      state.isOrgSession = myOrgSession;
+      localStorage.setItem("padel_tournament_state", JSON.stringify(state));
+      render();
+    }
+
+    function scheduleFirebasePush() {
+      clearTimeout(firebasePushTimer);
+      firebasePushTimer = setTimeout(() => {
+        firebaseRef.set(Object.assign({}, state, { _writer: sessionId, _updatedAt: Date.now() }));
+      }, 400);
+    }
+
+    firebaseRef.on("value", (snapshot) => {
+      firebaseConnected = true;
+      const remote = snapshot.val();
+      if (!remote) {
+        // Rien en ligne pour l'instant : si on est organisateur, on publie notre état local
+        if (state.isOrgSession) scheduleFirebasePush();
+        return;
+      }
+      if (remote._writer === sessionId) return; // écho de notre propre écriture : on ignore
+      applyRemoteState(remote);
+    });
 
     function loadFromLocalStorage() {
       const saved = localStorage.getItem("padel_tournament_state");
@@ -140,18 +173,14 @@
 
     function saveToLocalStorage() {
       localStorage.setItem("padel_tournament_state", JSON.stringify(state));
-      if (state.isOrgSession) {
-        set(ref(db, 'tournoi/actuel'), state).catch((error) => {
-          console.error("Erreur synchro Firebase : ", error);
-        });
-      }
+      if (state.isOrgSession) scheduleFirebasePush();
     }
 
     loadFromLocalStorage();
 
     function isOrganizer() { return state.isOrgSession; }
     
-    window.toggleOrganizerMode = function() {
+    function toggleOrganizerMode() {
       if (state.isOrgSession) {
         state.isOrgSession = false;
         render();
@@ -164,26 +193,26 @@
           alert("Code incorrect !");
         }
       }
-    };
+    }
 
-    window.switchTab = function(tab) { state.activeTab = tab; render(); };
+    function switchTab(tab) { state.activeTab = tab; render(); }
     
-    window.updateTeamEntry = function(idx, field, val) { 
+    function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
       state.teamEntries[idx][field] = val;
       saveToLocalStorage();
-    };
+    }
 
-    window.setFormat = function(fmt) {
+    function setFormat(fmt) {
       if (!state.isOrgSession) return;
       state.format = fmt;
       const count = fmt === '16' ? 16 : 12;
       state.teamEntries = Array.from({length: count}, (_, i) => state.teamEntries[i] || { player1: "", player2: "", poids: "" });
       saveToLocalStorage();
       render();
-    };
+    }
 
-    window.resetSetup = function() {
+    function resetSetup() {
       if (!state.isOrgSession) return;
       if (confirm("Réinitialiser les équipes ?")) {
         state.phase = "setup";
@@ -191,16 +220,15 @@
         state.teamEntries = Array.from({length: count}, () => ({ player1: "", player2: "", poids: "" }));
         state.bracket = null;
         state.scheduleTimes = {};
-        localStorage.removeItem("padel_tournament_state");
-        set(ref(db, 'tournoi/actuel'), state).catch(()=>{});
+        saveToLocalStorage();
         render();
       }
-    };
+    }
 
-    window.goToSetup = function() {
+    function goToSetup() {
       state.phase = "setup";
       render();
-    };
+    }
 
     function shuffleArray(array) {
       let arr = [...array];
@@ -211,7 +239,7 @@
       return arr;
     }
 
-    window.saveTournamentFile = function() {
+    function saveTournamentFile() {
       if (!state.isOrgSession) {
         alert("Action réservée à l'organisateur.");
         return;
@@ -223,17 +251,17 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-    };
+    }
 
-    window.triggerLoadTournamentFile = function() {
+    function triggerLoadTournamentFile() {
       if (!state.isOrgSession) {
         alert("Action réservée à l'organisateur.");
         return;
       }
       document.getElementById('importFile').click();
-    };
+    }
 
-    window.processImportFile = function(event) {
+    function processImportFile(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -254,9 +282,9 @@
       };
       reader.readAsText(file);
       event.target.value = "";
-    };
+    }
 
-    window.launchTournament = function() {
+    function launchTournament() {
       state.phase = "running";
       state.activeTab = "bracket";
       const formatNum = parseInt(state.format);
@@ -267,6 +295,7 @@
         poids: t.poids !== "" ? Number(t.poids) : 999999
       }));
 
+      // Tri croissant (le poids le plus faible devient tête de série n°1)
       teams.sort((a, b) => a.poids - b.poids);
       teams.forEach((t, index) => { t.seed = index + 1; });
 
@@ -332,6 +361,7 @@
         });
 
       } else {
+        // Format 12 équipes
         let top1_2 = shuffleArray([teams[0], teams[1]]);
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
@@ -389,8 +419,9 @@
       state.scheduleTimes = defaultTimes;
       saveToLocalStorage();
       render();
-    };
+    }
 
+    // Place une valeur dans une place ALEATOIRE encore libre (t2) parmi un tableau de matchs
     function assignToRandomSlot(matches, value) {
       if (!matches || !value) return;
       let emptyIndexes = [];
@@ -400,6 +431,7 @@
       matches[pick].t2 = value;
     }
 
+    // Place une valeur dans la PROCHAINE place libre (ordre du tableau) parmi un tableau de matchs
     function assignToNextEmptySlot(matches, value) {
       if (!matches || !value) return;
       for (let m of matches) {
@@ -408,6 +440,7 @@
       }
     }
 
+    // Retrouve dans quel match/emplacement (t1 ou t2) une équipe a été placée
     function locateTeam(matches, teamId) {
       if (!matches) return null;
       for (const m of matches) {
@@ -417,6 +450,9 @@
       return null;
     }
 
+    // Retire une équipe d'un tableau où elle avait déjà été envoyée (en cas de correction
+    // d'un résultat). Renvoie false si le tour suivant a déjà été joué avec elle : dans ce
+    // cas on ne touche à rien et on bloque la correction.
     function clearFromDownstream(matches, teamId) {
       if (!matches || teamId === undefined || teamId === null) return true;
       const loc = locateTeam(matches, teamId);
@@ -426,6 +462,9 @@
       return true;
     }
 
+    // Pour les enchaînements à emplacement FIXE (basés sur la position du match dans son
+    // tableau) : renvoie les matchs/emplacements cibles du gagnant et du perdant, ou null
+    // s'il s'agit d'un match terminal (finale, petite finale, etc.) qui ne propage rien.
     function resolveDeterministicTargets(section, round, idx, br) {
       if (section === "principal" && round === "QF") {
         const pairIndex = Math.floor(idx / 2);
@@ -466,7 +505,7 @@
       return null;
     }
 
-    window.selectWinner = function(section, round, matchId, teamNum) {
+    function selectWinner(section, round, matchId, teamNum) {
       if (!state.isOrgSession) {
         alert("Mode lecteur : vous ne pouvez pas modifier les vainqueurs.");
         return;
@@ -487,6 +526,7 @@
       const wasDecided = match.winner !== null;
       const oldWinner = match.winner;
 
+      // Re-clic sur l'équipe déjà déclarée gagnante : rien à changer
       if (wasDecided && oldWinner.id === newWinner.id) return;
 
       const oldLoser = wasDecided ? (oldWinner.id === match.t1.id ? match.t2 : match.t1) : null;
@@ -495,6 +535,7 @@
         alert("Impossible de corriger ce résultat : le tour suivant a déjà été joué avec cette équipe. Réinitialisez d'abord ce résultat suivant, puis recommencez.");
       };
 
+      // --- Tour préliminaire : diffusion immédiate et aléatoire ---
       if (section === "prelim") {
         const winTarget = state.bracket.size === 16 ? state.bracket.principal.R1 : state.bracket.principal.QF;
         const loseTarget = state.bracket.size === 16 ? state.bracket.consolante.SF13_16 : state.bracket.consolante.SF;
@@ -508,6 +549,7 @@
         assignToRandomSlot(winTarget, newWinner);
         assignToNextEmptySlot(loseTarget, newLoser);
 
+      // --- 8èmes de finale (qualificatifs, format 16 uniquement) : idem ---
       } else if (state.bracket.size === 16 && section === "principal" && round === "R1") {
         const winTarget = state.bracket.principal.QF;
         const loseTarget = state.bracket.consolante.SF;
@@ -521,6 +563,7 @@
         assignToRandomSlot(winTarget, newWinner);
         assignToNextEmptySlot(loseTarget, newLoser);
 
+      // --- Tous les autres tours : emplacement fixe (auto-correction sûre) ---
       } else {
         const target = resolveDeterministicTargets(section, round, matchIndex, state.bracket);
         if (target) {
@@ -533,13 +576,14 @@
           if (target.winMatch) target.winMatch[target.winKey] = newWinner;
           if (target.loseMatch) target.loseMatch[target.loseKey] = newLoser;
         } else {
+          // Match terminal (finale, petite finale, 7e-8e, 11e-12e, 13e-14e, 15e-16e...) : rien à propager
           match.winner = newWinner;
         }
       }
 
       saveToLocalStorage();
       render();
-    };
+    }
 
     function renderMatchCard(m, section, round) {
       const t1Name = m.t1 ? `${m.t1.seed ? `<span class="seed">#${m.t1.seed}</span>` : ''}${m.t1.name}` : "En attente...";
@@ -626,13 +670,13 @@
       return list;
     }
 
-    window.shareTournoi = function() {
+    function shareTournoi() {
       if (navigator.share) {
         navigator.share({ title: state.title, url: window.location.href }).catch(() => {});
       } else {
         prompt("Copiez le lien du tournoi :", window.location.href);
       }
-    };
+    }
 
     function render() {
       const app = document.getElementById("app");
@@ -644,7 +688,7 @@
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`}</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'}</div>
           </div>
         </div>
 
@@ -806,16 +850,6 @@
         `}
       `;
     }
-
-    // Écoute en direct Firebase corrigée
-    const tournamentRef = ref(db, 'tournoi/actuel');
-    onValue(tournamentRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        state = data;
-        render();
-      }
-    });
 
     render();
   </script>
