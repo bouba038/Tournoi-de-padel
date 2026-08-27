@@ -807,15 +807,13 @@
       `;
     }
 
-    // Écoute en direct Firebase
+    // Écoute en direct Firebase corrigée
     const tournamentRef = ref(db, 'tournoi/actuel');
     onValue(tournamentRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        if (!state.isOrgSession) {
-          state = data;
-          render();
-        }
+        state = data;
+        render();
       }
     });
 
