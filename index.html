@@ -210,7 +210,7 @@
         render();
       } else {
         const pin = prompt("Entrez le code organisateur :");
-        if (pin === "2026") {
+        if (pin === "2210") {
           state.isOrgSession = true;
           render();
         } else if (pin !== null) {
@@ -529,6 +529,88 @@
       return null;
     }
  
+    // Retrouve où se trouve un match donné dans l'arbre du tableau (section / round / index),
+    // utilisé pour pouvoir annuler un résultat en cascade.
+    function findSectionRoundForMatch(matchId) {
+      const br = state.bracket;
+      if (!br) return null;
+      const iPrelim = br.prelim.findIndex(m => m.id === matchId);
+      if (iPrelim !== -1) return { section: 'prelim', round: '', idx: iPrelim };
+      for (const grp of ['principal', 'places5_8', 'consolante']) {
+        const rounds = br[grp];
+        for (const round in rounds) {
+          const arr = rounds[round];
+          if (Array.isArray(arr)) {
+            const idx = arr.findIndex(m => m.id === matchId);
+            if (idx !== -1) return { section: grp, round, idx };
+          }
+        }
+      }
+      return null;
+    }
+ 
+    // Retire une équipe d'un match précis. Si ce match avait déjà lui-même un résultat,
+    // on l'annule D'ABORD en cascade (récursivement) pour ne jamais laisser le tableau
+    // dans un état incohérent.
+    function cascadeRemoveTeamFromMatch(m, teamId) {
+      if (!m) return;
+      if (m.winner) {
+        const loc = findSectionRoundForMatch(m.id);
+        if (loc) cascadeCancel(loc.section, loc.round, loc.idx, m);
+      }
+      if (m.t1 && m.t1.id === teamId) m.t1 = null;
+      if (m.t2 && m.t2.id === teamId) m.t2 = null;
+    }
+ 
+    function cascadeRemoveTeam(matches, teamId) {
+      if (!matches || teamId === undefined || teamId === null) return;
+      for (const m of matches) {
+        if ((m.t1 && m.t1.id === teamId) || (m.t2 && m.t2.id === teamId)) {
+          cascadeRemoveTeamFromMatch(m, teamId);
+          return;
+        }
+      }
+    }
+ 
+    // Annule le résultat d'un match, EN CASCADE : si les équipes concernées ont déjà
+    // joué (et gagné/perdu) un tour suivant, ce tour suivant est aussi annulé automatiquement,
+    // et ainsi de suite. Permet à l'organisateur d'annuler n'importe quel résultat, à tout moment.
+    function cascadeCancel(section, round, idx, match) {
+      if (!match || !match.winner) return;
+      const winner = match.winner;
+      const loser = (match.t1 && winner.id === match.t1.id) ? match.t2 : match.t1;
+
+      if (section === "prelim") {
+        const winTarget = state.bracket.size === 16 ? state.bracket.principal.R1 : state.bracket.principal.QF;
+        const loseTarget = state.bracket.size === 16 ? state.bracket.consolante.SF13_16 : state.bracket.consolante.SF;
+        cascadeRemoveTeam(winTarget, winner.id);
+        if (loser) cascadeRemoveTeam(loseTarget, loser.id);
+      } else if (state.bracket.size === 16 && section === "principal" && round === "R1") {
+        cascadeRemoveTeam(state.bracket.principal.QF, winner.id);
+        if (loser) cascadeRemoveTeam(state.bracket.consolante.SF, loser.id);
+      } else {
+        const target = resolveDeterministicTargets(section, round, idx, state.bracket);
+        if (target) {
+          if (target.winMatch) cascadeRemoveTeamFromMatch(target.winMatch, winner.id);
+          if (target.loseMatch && loser) cascadeRemoveTeamFromMatch(target.loseMatch, loser.id);
+        }
+      }
+      match.winner = null;
+    }
+
+    function cancelMatch(section, round, matchId) {
+      if (!state.isOrgSession) return;
+      let matchArray = section === "prelim" ? state.bracket.prelim : state.bracket[section][round];
+      const idx = matchArray.findIndex(m => m.id === matchId);
+      if (idx === -1) return;
+      const match = matchArray[idx];
+      if (!match.winner) return;
+      if (!confirm("Annuler ce résultat ? Les tours suivants qui en dépendent seront aussi réinitialisés si besoin.")) return;
+      cascadeCancel(section, round, idx, match);
+      saveToLocalStorage();
+      render();
+    }
+ 
     function selectWinner(section, round, matchId, teamNum) {
       if (!state.isOrgSession) {
         alert("Mode lecteur : vous ne pouvez pas modifier les vainqueurs.");
@@ -614,6 +696,7 @@
       const t2Name = m.t2 ? `${m.t2.seed ? `<span class="seed">#${m.t2.seed}</span>` : ''}${m.t2.name}` : "En attente...";
       const isW1 = m.winner && m.t1 && m.winner.id === m.t1.id;
       const isW2 = m.winner && m.t2 && m.winner.id === m.t2.id;
+      const organizer = isOrganizer();
  
       return `
         <div class="match-card">
@@ -626,6 +709,7 @@
             <span>${t2Name}</span>
             ${isW2 ? '<span>✔</span>' : ''}
           </div>
+          ${m.winner && organizer ? `<div style="text-align:center; margin-top:4px;"><button onclick="cancelMatch('${section}', '${round}', '${m.id}')" style="background:none;border:none;color:#991b1b;font-size:0.65rem;cursor:pointer;text-decoration:underline;padding:2px;">✖ Annuler ce résultat</button></div>` : ''}
         </div>
       `;
     }
@@ -694,6 +778,41 @@
       return list;
     }
  
+    // Vrai si au moins un résultat a été validé quelque part dans le tableau
+    function anyResultDecided(bracket) {
+      if (!bracket) return false;
+      if (bracket.prelim && bracket.prelim.some(m => m.winner)) return true;
+      for (const grp of ['principal', 'places5_8', 'consolante']) {
+        const rounds = bracket[grp];
+        for (const round in rounds) {
+          const arr = rounds[round];
+          if (Array.isArray(arr) && arr.some(m => m.winner)) return true;
+        }
+      }
+      return false;
+    }
+ 
+    // Rassemble toutes les équipes du tableau (dédupliquées par id), triées par tête de série
+    function collectAllTeams(bracket) {
+      const map = new Map();
+      function scan(node) {
+        if (Array.isArray(node)) { node.forEach(scan); return; }
+        if (node && typeof node === 'object') {
+          if ('id' in node && 'name' in node && 'seed' in node) {
+            map.set(node.id, node);
+          } else if ('t1' in node || 't2' in node) {
+            if (node.t1) map.set(node.t1.id, node.t1);
+            if (node.t2) map.set(node.t2.id, node.t2);
+            Object.keys(node).forEach(k => scan(node[k]));
+          } else {
+            Object.keys(node).forEach(k => scan(node[k]));
+          }
+        }
+      }
+      scan(bracket);
+      return Array.from(map.values()).sort((a, b) => a.seed - b.seed);
+    }
+ 
     function shareTournoi() {
       if (navigator.share) {
         navigator.share({ title: state.title, url: window.location.href }).catch(() => {});
@@ -723,12 +842,20 @@
       if (!state) return;
       const organizer = isOrganizer();
  
+      // Avant le 1er résultat du tournoi, les lecteurs n'ont accès qu'à la liste des
+      // équipes et aux horaires (pas au tableau des matchs). Dès qu'un résultat est
+      // validé quelque part, l'accès complet s'ouvre pour tout le monde.
+      const tournamentStarted = state.phase === 'running' && anyResultDecided(state.bracket);
+      const readerLocked = !organizer && state.phase === 'running' && !tournamentStarted;
+      let effectiveTab = state.activeTab;
+      if (readerLocked && effectiveTab === 'bracket') effectiveTab = 'teams';
+ 
       app.innerHTML = `
         <div class="banner">
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v22</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v23</div>
           </div>
         </div>
  
@@ -742,7 +869,7 @@
             <button class="share-btn" onclick="shareTournoi()">🔗 Partager</button>
           </div>
           <div class="topbar-group">
-            ${state.phase === 'running' ? `<button class="teams-view-btn" onclick="goToSetup()">👥 Équipes</button>` : ''}
+            ${state.phase === 'running' && organizer ? `<button class="teams-view-btn" onclick="goToSetup()">✏️ Modifier équipes</button>` : ''}
             ${organizer && state.phase === 'setup' ? `<button class="reset-btn" onclick="resetSetup()">🔄 Vider</button>` : ''}
           </div>
         </div>
@@ -772,11 +899,26 @@
           </div>
         ` : `
           <div class="nav-tabs">
-            <button class="tab-btn ${state.activeTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>
-            <button class="tab-btn ${state.activeTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires</button>
+            ${!readerLocked ? `<button class="tab-btn ${effectiveTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>` : ''}
+            <button class="tab-btn ${effectiveTab==='teams'?'active':''}" onclick="switchTab('teams')">👥 Équipes</button>
+            <button class="tab-btn ${effectiveTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires</button>
           </div>
  
-          ${state.activeTab === 'bracket' ? `
+          ${readerLocked ? `<div class="locked-notice">⏳ Le tableau des matchs s'ouvrira dès la validation du premier résultat par l'organisateur.</div>` : ''}
+ 
+          ${effectiveTab === 'teams' ? `
+            <div class="section">
+              <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Liste des équipes</h2></div>
+              <div class="teams-container">
+                ${collectAllTeams(state.bracket).map(t => `
+                  <div class="team-row">
+                    <span class="num">#${t.seed}</span>
+                    <div style="flex:1; padding:6px 8px; font-weight:600;">${t.name}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : effectiveTab === 'bracket' ? `
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--orange)"></div><h2>${state.bracket.size === 16 ? 'Tour Préliminaire (Poids 9 à 16)' : 'Premier Tour (Têtes de série 5 à 12)'}</h2></div>
               <div class="rounds">
