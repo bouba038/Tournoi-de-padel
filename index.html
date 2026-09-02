@@ -103,33 +103,76 @@
   <input type="file" id="importFile" style="display:none" accept=".json,application/json,text/plain,*/*" onchange="processImportFile(event)">
  
   <script>
-    let state = {
-      title: "Tournoi du club",
-      format: "16",
-      phase: "setup",
-      activeTab: "bracket",
-      isOrgSession: false,
-      teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
-      bracket: null,
-      scheduleTimes: {}
-    };
- 
-    // ---- Synchronisation en direct (Firebase Realtime Database) ----
-    const firebaseConfig = {
-      apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
-      authDomain: "tournoi-padel-86551.firebaseapp.com",
-      databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "tournoi-padel-86551",
-      storageBucket: "tournoi-padel-86551.firebasestorage.app",
-      messagingSenderId: "499802248061",
-      appId: "1:499802248061:web:c2295602e9bcc8b03af214"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const firebaseRef = firebase.database().ref("tournamentState");
+    // ---- Gestion multi-tournois ----
+    // Chaque tournoi est identifié par un id dans l'URL (?id=...), avec son propre
+    // stockage local et son propre emplacement Firebase, complètement indépendants.
+
+    function getTournamentIdFromUrl() {
+      return new URLSearchParams(window.location.search).get('id');
+    }
+
+    const INDEX_KEY = "padel_tournaments_index";
+
+    function loadTournamentsIndex() {
+      try { return JSON.parse(localStorage.getItem(INDEX_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveTournamentsIndex(list) {
+      localStorage.setItem(INDEX_KEY, JSON.stringify(list));
+    }
+    function addToIndex(id, title) {
+      let list = loadTournamentsIndex();
+      const existing = list.find(t => t.id === id);
+      if (existing) existing.title = title || existing.title;
+      else list.unshift({ id, title: title || id });
+      saveTournamentsIndex(list);
+    }
+    function removeFromIndex(id) {
+      saveTournamentsIndex(loadTournamentsIndex().filter(t => t.id !== id));
+    }
+
+    function localStorageKey(id) { return "padel_tournament_state_" + id; }
+
+    function slugify(name) {
+      return (name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "tournoi";
+    }
+    function generateTournamentId(name) {
+      return slugify(name) + "-" + Math.random().toString(36).slice(2, 6);
+    }
+
+    // Récupère l'ancien tournoi (avant la gestion multi-tournois) s'il existe, et le
+    // transforme en un tournoi "principal" avec son ancien code organisateur, pour ne
+    // rien perdre.
+    function migrateLegacyIfNeeded() {
+      const legacy = localStorage.getItem("padel_tournament_state");
+      if (!legacy) return null;
+      try {
+        const parsed = JSON.parse(legacy);
+        const id = "principal";
+        if (!parsed.organizerPin) parsed.organizerPin = "2210";
+        localStorage.setItem(localStorageKey(id), JSON.stringify(parsed));
+        addToIndex(id, parsed.title || "Tournoi du club");
+        localStorage.removeItem("padel_tournament_state");
+        return id;
+      } catch(e) { return null; }
+    }
+
+    let TOURNAMENT_ID = getTournamentIdFromUrl();
+    let REDIRECTING = false;
+    if (!TOURNAMENT_ID) {
+      const migratedId = migrateLegacyIfNeeded();
+      if (migratedId) {
+        REDIRECTING = true;
+        window.location.href = window.location.pathname + "?id=" + migratedId;
+      }
+    }
+
+    let state = null;
+    let firebaseRef = null;
     const sessionId = Math.random().toString(36).slice(2);
     let firebaseConnected = false;
     let firebasePushTimer = null;
- 
+
     // Firebase Realtime Database NE STOCKE JAMAIS les valeurs "null" (la clé est
     // simplement omise). Du coup, un match pas encore joué (winner: null, t1: null...)
     // revient depuis Firebase avec winner: undefined au lieu de null. Cette fonction
@@ -150,7 +193,7 @@
         Object.keys(node).forEach(k => normalizeMatches(node[k]));
       }
     }
- 
+
     // Applique un état reçu de Firebase SANS écraser le statut organisateur local
     // (chaque appareil décide lui-même, via son code PIN, s'il est organisateur ou lecteur)
     function applyRemoteState(remoteData) {
@@ -163,45 +206,33 @@
       state = clean;
       state.isOrgSession = myOrgSession;
       state.activeTab = myActiveTab;
-      localStorage.setItem("padel_tournament_state", JSON.stringify(state));
+      localStorage.setItem(localStorageKey(TOURNAMENT_ID), JSON.stringify(state));
+      addToIndex(TOURNAMENT_ID, state.title);
       render();
     }
- 
+
     function scheduleFirebasePush() {
       clearTimeout(firebasePushTimer);
       firebasePushTimer = setTimeout(() => {
         firebaseRef.set(Object.assign({}, state, { _writer: sessionId, _updatedAt: Date.now() }));
       }, 400);
     }
- 
-    firebaseRef.on("value", (snapshot) => {
-      firebaseConnected = true;
-      const remote = snapshot.val();
-      if (!remote) {
-        // Rien en ligne pour l'instant : si on est organisateur, on publie notre état local
-        if (state.isOrgSession) scheduleFirebasePush();
-        return;
-      }
-      if (remote._writer === sessionId) return; // écho de notre propre écriture : on ignore
-      applyRemoteState(remote);
-    });
- 
+
     function loadFromLocalStorage() {
-      const saved = localStorage.getItem("padel_tournament_state");
+      const saved = localStorage.getItem(localStorageKey(TOURNAMENT_ID));
       if (saved) {
         try {
           state = JSON.parse(saved);
         } catch(e) {}
       }
     }
- 
+
     function saveToLocalStorage() {
-      localStorage.setItem("padel_tournament_state", JSON.stringify(state));
+      localStorage.setItem(localStorageKey(TOURNAMENT_ID), JSON.stringify(state));
+      addToIndex(TOURNAMENT_ID, state.title);
       if (state.isOrgSession) scheduleFirebasePush();
     }
- 
-    loadFromLocalStorage();
- 
+
     function isOrganizer() { return state.isOrgSession; }
     
     function toggleOrganizerMode() {
@@ -209,10 +240,15 @@
         state.isOrgSession = false;
         render();
       } else {
+        if (!state.organizerPin) {
+          alert("Chargement en cours, réessaie dans un instant.");
+          return;
+        }
         const pin = prompt("Entrez le code organisateur :");
-        if (pin === "2210") {
+        if (pin === state.organizerPin) {
           state.isOrgSession = true;
           render();
+
         } else if (pin !== null) {
           alert("Code incorrect !");
         }
@@ -326,7 +362,7 @@
       let defaultTimes = {};
  
       if (formatNum === 16) {
-        let top1_2 = shuffleArray([teams[0], teams[1]]);
+        let top1_2 = [teams[0], teams[1]]; // tête de série 1 toujours en haut, 2 toujours en bas (pas aléatoire)
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let top5_8 = shuffleArray([teams[4], teams[5], teams[6], teams[7]]);
         let rest9_16 = shuffleArray(teams.slice(8, 16));
@@ -386,7 +422,7 @@
  
       } else {
         // Format 12 équipes
-        let top1_2 = shuffleArray([teams[0], teams[1]]);
+        let top1_2 = [teams[0], teams[1]]; // tête de série 1 toujours en haut, 2 toujours en bas (pas aléatoire)
         let top3_4 = shuffleArray([teams[2], teams[3]]);
         let qfTopTeams = [top1_2[0], top3_4[0], top3_4[1], top1_2[1]];
  
@@ -820,7 +856,85 @@
         prompt("Copiez le lien du tournoi :", window.location.href);
       }
     }
- 
+
+    function goHome() {
+      window.location.href = window.location.pathname;
+    }
+
+    function createNewTournament() {
+      const nameInput = document.getElementById('newTournamentName');
+      const pinInput = document.getElementById('newTournamentPin');
+      const name = (nameInput.value || '').trim() || 'Tournoi du club';
+      const pin = (pinInput.value || '').trim();
+      if (!pin) { alert("Merci de choisir un code organisateur pour ce tournoi."); return; }
+      const id = generateTournamentId(name);
+      const initial = {
+        title: name,
+        format: "16",
+        phase: "setup",
+        activeTab: "bracket",
+        isOrgSession: false,
+        organizerPin: pin,
+        teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
+        bracket: null,
+        scheduleTimes: {}
+      };
+      localStorage.setItem(localStorageKey(id), JSON.stringify(initial));
+      addToIndex(id, name);
+      window.location.href = window.location.pathname + "?id=" + encodeURIComponent(id);
+    }
+
+    function openTournament(id) {
+      window.location.href = window.location.pathname + "?id=" + encodeURIComponent(id);
+    }
+
+    function deleteFromHomeList(id, event) {
+      event.stopPropagation();
+      if (confirm("Retirer ce tournoi de la liste sur cet appareil ? (Ne supprime pas les données en ligne.)")) {
+        removeFromIndex(id);
+        renderHome();
+      }
+    }
+
+    function renderHome() {
+      const app = document.getElementById("app");
+      const list = loadTournamentsIndex();
+      app.innerHTML = `
+        <div class="banner">
+          <div class="trophy">🏆</div>
+          <div style="flex:1;">
+            <div style="font-size:1.2rem;font-weight:bold;">Mes tournois de padel</div>
+            <div class="sub">Crée un nouveau tournoi ou reprends-en un existant</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Créer un nouveau tournoi</h2></div>
+          <div class="teams-container">
+            <input type="text" id="newTournamentName" placeholder="Nom du tournoi (ex : Tournoi de printemps)" style="padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" />
+            <input type="text" id="newTournamentPin" placeholder="Code organisateur pour CE tournoi (ex : 1234)" style="padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" />
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="createNewTournament()">🚀 Créer ce tournoi</button>
+          </div>
+        </div>
+
+        ${list.length ? `
+          <div class="section">
+            <div class="section-head"><div class="dot" style="background:var(--purple)"></div><h2>Tournois déjà ouverts sur cet appareil</h2></div>
+            <div class="teams-container">
+              ${list.map(t => `
+                <div class="team-row" style="cursor:pointer;" onclick="openTournament('${t.id}')">
+                  <div style="flex:1;padding:6px 8px;font-weight:600;">${t.title}</div>
+                  <button onclick="deleteFromHomeList('${t.id}', event)" style="background:none;border:none;color:#991b1b;font-size:0.9rem;cursor:pointer;padding:4px 8px;">✖</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `;
+    }
+
     function render() {
       try {
         renderInner();
@@ -855,12 +969,13 @@
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v23</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v24</div>
           </div>
         </div>
  
         <div class="topbar">
           <div class="topbar-group">
+            <button class="share-btn" onclick="goHome()">🏠 Mes tournois</button>
             <button class="org-badge" onclick="toggleOrganizerMode()">${organizer ? '🔒 Organisateur' : '🔑 Lecteur'}</button>
             ${organizer ? `
               <button class="save-btn" onclick="saveTournamentFile()">💾 Sauvegarder</button>
@@ -1033,7 +1148,49 @@
       `;
     }
  
-    render();
+    // ---- Démarrage ----
+    if (TOURNAMENT_ID) {
+      state = {
+        title: "Tournoi du club",
+        format: "16",
+        phase: "setup",
+        activeTab: "bracket",
+        isOrgSession: false,
+        organizerPin: null,
+        teamEntries: Array.from({length: 16}, () => ({ player1: "", player2: "", poids: "" })),
+        bracket: null,
+        scheduleTimes: {}
+      };
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCM-jE9R7kDrHTXzzl3INP9V577r8ocpbI",
+        authDomain: "tournoi-padel-86551.firebaseapp.com",
+        databaseURL: "https://tournoi-padel-86551-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "tournoi-padel-86551",
+        storageBucket: "tournoi-padel-86551.firebasestorage.app",
+        messagingSenderId: "499802248061",
+        appId: "1:499802248061:web:c2295602e9bcc8b03af214"
+      };
+      firebase.initializeApp(firebaseConfig);
+      firebaseRef = firebase.database().ref("tournaments/" + TOURNAMENT_ID);
+
+      firebaseRef.on("value", (snapshot) => {
+        firebaseConnected = true;
+        const remote = snapshot.val();
+        if (!remote) {
+          if (state.isOrgSession) scheduleFirebasePush();
+          return;
+        }
+        if (remote._writer === sessionId) return;
+        applyRemoteState(remote);
+      });
+
+      loadFromLocalStorage();
+      addToIndex(TOURNAMENT_ID, state.title);
+      render();
+    } else if (!REDIRECTING) {
+      renderHome();
+    }
   </script>
 </body>
 </html>
