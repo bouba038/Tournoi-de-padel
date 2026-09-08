@@ -260,6 +260,12 @@
     function updateTeamEntry(idx, field, val) { 
       if (!state.isOrgSession) return;
       state.teamEntries[idx][field] = val;
+      if (field === 'player1' || field === 'player2') {
+        // Un nouveau joueur ne peut pas hériter du poids/classement de celui qu'il remplace
+        state.teamEntries[idx].poids = "";
+        const poidsEl = document.getElementById('poids-' + idx);
+        if (poidsEl) poidsEl.value = "";
+      }
       saveToLocalStorage();
     }
  
@@ -1015,7 +1021,7 @@
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v26</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v28</div>
           </div>
         </div>
  
@@ -1049,7 +1055,7 @@
                 <span class="num">${idx+1}</span>
                 <input type="text" placeholder="Joueur 1" value="${team.player1 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player1', this.value)" />
                 <input type="text" placeholder="Joueur 2" value="${team.player2 || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'player2', this.value)" />
-                <input type="text" class="poids" placeholder="Poids" maxlength="6" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
+                <input type="text" class="poids" id="poids-${idx}" placeholder="Poids" maxlength="6" value="${team.poids || ''}" ${!organizer ? 'readonly' : ''} oninput="updateTeamEntry(${idx}, 'poids', this.value)" />
               </div>
             `).join('')}
           </div>
@@ -1076,6 +1082,7 @@
                   <div class="team-row">
                     <span class="num">#${t.seed}</span>
                     <div style="flex:1; padding:6px 8px; font-weight:600;">${t.name}</div>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--primary); background:var(--accent); padding:4px 8px; border-radius:6px;">Poids ${t.poids}</span>
                   </div>
                 `).join('')}
               </div>
