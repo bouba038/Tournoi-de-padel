@@ -286,6 +286,9 @@
     }
  
     function goToSetup() {
+      if (anyResultDecided(state.bracket)) {
+        if (!confirm("Attention : des résultats sont déjà enregistrés. Modifier les équipes et relancer le tournoi effacera TOUT le tableau et tous les résultats actuels. Continuer ?")) return;
+      }
       state.phase = "setup";
       render();
     }
@@ -345,6 +348,15 @@
     }
  
     function launchTournament() {
+      const missing = [];
+      state.teamEntries.forEach((t, i) => {
+        if (t.poids === undefined || t.poids === null || String(t.poids).trim() === "") missing.push(i + 1);
+      });
+      if (missing.length > 0) {
+        alert("Impossible de lancer le tournoi : le poids n'est pas renseigné pour l'équipe" + (missing.length > 1 ? "s n°s " : " n° ") + missing.join(", ") + ".");
+        return;
+      }
+
       state.phase = "running";
       state.activeTab = "bracket";
       const formatNum = parseInt(state.format);
@@ -849,6 +861,40 @@
       return Array.from(map.values()).sort((a, b) => a.seed - b.seed);
     }
  
+    // Calcule le classement final complet (place 1 à 16 ou 1 à 12), à partir des
+    // matchs terminaux du tableau. Une place est "en attente" si le match qui la
+    // détermine n'a pas encore de résultat.
+    function computeFinalRanking(bracket) {
+      const size = bracket.size;
+      const matchOrder = size === 16 ? [
+        bracket.principal.F[0],
+        bracket.principal.Third[0],
+        bracket.places5_8.F[0],
+        bracket.places5_8.Seventh[0],
+        bracket.consolante.F[0],
+        bracket.consolante.Eleventh[0],
+        bracket.consolante.Thirteenth[0],
+        bracket.consolante.Fifteenth[0]
+      ] : [
+        bracket.principal.F[0],
+        bracket.principal.Third[0],
+        bracket.places5_8.F[0],
+        bracket.places5_8.Seventh[0],
+        bracket.consolante.F[0],
+        bracket.consolante.Third[0]
+      ];
+      let ranking = [];
+      matchOrder.forEach((m, idx) => {
+        const winner = m.winner || null;
+        const loser = winner ? ((m.t1 && winner.id === m.t1.id) ? m.t2 : m.t1) : null;
+        ranking.push({ rank: idx * 2 + 1, team: winner });
+        ranking.push({ rank: idx * 2 + 2, team: loser });
+      });
+      return ranking;
+    }
+
+    function frenchOrdinal(n) { return n === 1 ? "1er" : n + "e"; }
+
     function shareTournoi() {
       if (navigator.share) {
         navigator.share({ title: state.title, url: window.location.href }).catch(() => {});
@@ -962,14 +1008,14 @@
       const tournamentStarted = state.phase === 'running' && anyResultDecided(state.bracket);
       const readerLocked = !organizer && state.phase === 'running' && !tournamentStarted;
       let effectiveTab = state.activeTab;
-      if (readerLocked && effectiveTab === 'bracket') effectiveTab = 'teams';
+      if (readerLocked && (effectiveTab === 'bracket' || effectiveTab === 'ranking')) effectiveTab = 'teams';
  
       app.innerHTML = `
         <div class="banner">
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v24</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v26</div>
           </div>
         </div>
  
@@ -1017,6 +1063,7 @@
             ${!readerLocked ? `<button class="tab-btn ${effectiveTab==='bracket'?'active':''}" onclick="switchTab('bracket')">📊 Tableau & Matchs</button>` : ''}
             <button class="tab-btn ${effectiveTab==='teams'?'active':''}" onclick="switchTab('teams')">👥 Équipes</button>
             <button class="tab-btn ${effectiveTab==='schedule'?'active':''}" onclick="switchTab('schedule')">🕒 Horaires</button>
+            ${!readerLocked ? `<button class="tab-btn ${effectiveTab==='ranking'?'active':''}" onclick="switchTab('ranking')">🏅 Classement</button>` : ''}
           </div>
  
           ${readerLocked ? `<div class="locked-notice">⏳ Le tableau des matchs s'ouvrira dès la validation du premier résultat par l'organisateur.</div>` : ''}
@@ -1105,7 +1152,7 @@
                 </div>
               </div>
             </div>
-          ` : `
+          ` : effectiveTab === 'schedule' ? `
             <div class="section">
               <div class="section-head"><div class="dot" style="background:var(--teal)"></div><h2>Planning Chronologique</h2></div>
               <table class="schedule-table">
@@ -1140,6 +1187,26 @@
                       </tr>
                     `;
                   }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <div class="section">
+              <div class="section-head"><div class="dot" style="background:var(--primary)"></div><h2>Classement final</h2></div>
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th>Place</th>
+                    <th>Équipe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${computeFinalRanking(state.bracket).map(r => `
+                    <tr class="${r.team ? 'match-finished' : ''}">
+                      <td><strong>${frenchOrdinal(r.rank)}</strong></td>
+                      <td>${r.team ? `${r.team.seed ? `#${r.team.seed} ` : ''}${r.team.name}` : "En attente..."}</td>
+                    </tr>
+                  `).join('')}
                 </tbody>
               </table>
             </div>
