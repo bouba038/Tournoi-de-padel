@@ -353,9 +353,19 @@
       event.target.value = "";
     }
  
+    // Une équipe "EXEMPT" représente une place vide (personne de présent) : elle ne
+    // joue pas réellement, elle sert juste à compléter le tableau. Pas besoin de poids
+    // pour elle, et elle part toujours en dernière tête de série.
+    function isExemptEntry(t) {
+      const p1 = (t.player1 || "").trim().toUpperCase();
+      const p2 = (t.player2 || "").trim().toUpperCase();
+      return p1 === "EXEMPT" || p2 === "EXEMPT";
+    }
+
     function launchTournament() {
       const missing = [];
       state.teamEntries.forEach((t, i) => {
+        if (isExemptEntry(t)) return;
         if (t.poids === undefined || t.poids === null || String(t.poids).trim() === "") missing.push(i + 1);
       });
       if (missing.length > 0) {
@@ -367,11 +377,15 @@
       state.activeTab = "bracket";
       const formatNum = parseInt(state.format);
       
-      let teams = state.teamEntries.map((t, i) => ({
-        id: i,
-        name: (t.player1 || t.player2) ? `${t.player1} / ${t.player2}` : `Équipe ${i+1}`,
-        poids: t.poids !== "" ? Number(t.poids) : 999999
-      }));
+      let teams = state.teamEntries.map((t, i) => {
+        const exempt = isExemptEntry(t);
+        return {
+          id: i,
+          name: exempt ? "⛔ EXEMPT" : ((t.player1 || t.player2) ? `${t.player1} / ${t.player2}` : `Équipe ${i+1}`),
+          poids: exempt ? 999999 : (t.poids !== "" ? Number(t.poids) : 999999),
+          exempt: exempt
+        };
+      });
  
       // Tri croissant (le poids le plus faible devient tête de série n°1)
       teams.sort((a, b) => a.poids - b.poids);
@@ -1021,7 +1035,7 @@
           <div class="trophy">🏆</div>
           <div style="flex:1;">
             <input type="text" value="${state.title || 'Tournoi du club'}" ${!organizer ? 'readonly' : ''} oninput="state.title=this.value; saveToLocalStorage();" placeholder="Nom du tournoi" />
-            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v28</div>
+            <div class="sub">${state.phase === 'setup' ? 'Configuration & Têtes de série' : `${state.bracket.size} équipes en lice`} ${firebaseConnected ? '• 🔄 Synchronisé en direct' : '• ⏳ Connexion...'} • v29</div>
           </div>
         </div>
  
